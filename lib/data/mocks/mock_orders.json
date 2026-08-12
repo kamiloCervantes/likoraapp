@@ -1,0 +1,90 @@
+[
+  {
+    "id": "ORD-9821",
+    "order_date": "2026-08-07 10:15",
+    "items": [
+      {
+        "product": {
+          "id": "prod-101",
+          "title": "Vino Tinto Reserva",
+          "description": "Vino tinto de cuerpo entero.",
+          "price": 30.00,
+          "discount_price": 20.00,
+          "rating": 4.8,
+          "category_id": "cat-vinos",
+          "subcategory_id": "sub-vinos-tintos",
+          "images": ["https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=500&q=80"],
+          "is_featured": true,
+          "is_offer": true
+        },
+        "quantity": 1
+      },
+      {
+        "product": {
+          "id": "prod-102",
+          "title": "Cerveza IPA Artesanal",
+          "description": "Cerveza artesanal cítrica.",
+          "price": 12.00,
+          "discount_price": 8.00,
+          "rating": 4.6,
+          "category_id": "cat-cervezas",
+          "subcategory_id": "sub-cervezas-artesanales",
+          "images": ["https://images.unsplash.com/photo-1608270586620-248524c67de9?w=500&q=80"],
+          "is_featured": true,
+          "is_offer": true
+        },
+        "quantity": 2
+      }
+    ],
+    "subtotal": 36.00,
+    "tax": 5.76,
+    "shipping_fee": 3.50,
+    "total": 45.26,
+    "shipping_address": "Av. Reforma #1234, Apt 4B, Ciudad de México",
+    "status": "on_the_way",
+    "delivery_person": {
+      "name": "Carlos Mendoza",
+      "role": "Repartidor",
+      "vehicle": "Motocicleta",
+      "plate_number": "ABC-123",
+      "rating": 4.5,
+      "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500&q=80"
+    }
+  },
+  {
+    "id": "ORD-7740",
+    "order_date": "2026-08-05 18:30",
+    "items": [
+      {
+        "product": {
+          "id": "prod-103",
+          "title": "Whisky Escocés 12 Años",
+          "description": "Whisky de malta envejecido.",
+          "price": 60.00,
+          "discount_price": 45.00,
+          "rating": 4.9,
+          "category_id": "cat-whiskys",
+          "subcategory_id": "sub-whiskys-single-malt",
+          "images": ["https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=500&q=80"],
+          "is_featured": true,
+          "is_offer": true
+        },
+        "quantity": 1
+      }
+    ],
+    "subtotal": 45.00,
+    "tax": 7.20,
+    "shipping_fee": 3.50,
+    "total": 55.70,
+    "shipping_address": "Paseo de la Castellana #50, Piso 8, Ciudad de México",
+    "status": "delivered",
+    "delivery_person": {
+      "name": "Carlos Mendoza",
+      "role": "Repartidor",
+      "vehicle": "Motocicleta",
+      "plate_number": "ABC-123",
+      "rating": 4.5,
+      "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500&q=80"
+    }
+  }
+]

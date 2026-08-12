@@ -1,0 +1,18 @@
+[
+  {
+    "id": "addr-01",
+    "title": "Casa",
+    "full_address": "Av. Reforma #1234, Apt 4B",
+    "city": "Ciudad de México",
+    "details": "Edificio color crema, timbre 402",
+    "is_default": true
+  },
+  {
+    "id": "addr-02",
+    "title": "Oficina",
+    "full_address": "Paseo de la Castellana #50, Piso 8",
+    "city": "Ciudad de México",
+    "details": "Entregar en recepción principal",
+    "is_default": false
+  }
+]

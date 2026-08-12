@@ -1,0 +1,44 @@
+[
+  {
+    "id": "cat-vinos",
+    "name": "Vinos",
+    "icon": "wine_bar",
+    "subcategories": [
+      { "id": "sub-vinos-tintos", "name": "Vinos Tintos" },
+      { "id": "sub-vinos-blancos", "name": "Vinos Blancos" },
+      { "id": "sub-vinos-rosados", "name": "Vinos Rosados" },
+      { "id": "sub-esposos", "name": "Espumosos y Champagne" }
+    ]
+  },
+  {
+    "id": "cat-cervezas",
+    "name": "Cervezas",
+    "icon": "sports_bar",
+    "subcategories": [
+      { "id": "sub-cervezas-artesanales", "name": "Artesanales (IPA / Stout)" },
+      { "id": "sub-cervezas-nacionales", "name": "Nacionales" },
+      { "id": "sub-cervezas-importadas", "name": "Importadas" }
+    ]
+  },
+  {
+    "id": "cat-whiskys",
+    "name": "Whiskys",
+    "icon": "liquor",
+    "subcategories": [
+      { "id": "sub-whiskys-single-malt", "name": "Single Malt" },
+      { "id": "sub-whiskys-blended", "name": "Blended Scotch" },
+      { "id": "sub-whiskys-bourbon", "name": "Bourbon & Tennessee" }
+    ]
+  },
+  {
+    "id": "cat-licores",
+    "name": "Licores y Espirituosas",
+    "icon": "local_bar",
+    "subcategories": [
+      { "id": "sub-tequilas", "name": "Tequila y Mezcal" },
+      { "id": "sub-ginebras", "name": "Ginebras" },
+      { "id": "sub-rones", "name": "Rones Añejos" },
+      { "id": "sub-vodkas", "name": "Vodkas" }
+    ]
+  }
+]

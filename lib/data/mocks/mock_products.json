@@ -1,0 +1,92 @@
+[
+  {
+    "id": "prod-101",
+    "title": "Vino Tinto Reserva",
+    "description": "Vino tinto de cuerpo entero con notas de frutos rojos maduros, vainilla y roble ahumado. Crianza de 12 meses en barrica francesa.",
+    "price": 30.00,
+    "discount_price": 20.00,
+    "rating": 4.8,
+    "category_id": "cat-vinos",
+    "subcategory_id": "sub-vinos-tintos",
+    "images": [
+      "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=500&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": true
+  },
+  {
+    "id": "prod-102",
+    "title": "Cerveza IPA Artesanal",
+    "description": "Cerveza de estilo India Pale Ale con un intenso aroma cítrico, notas de lúpulo fresco y un amargor equilibrado.",
+    "price": 12.00,
+    "discount_price": 8.00,
+    "rating": 4.6,
+    "category_id": "cat-cervezas",
+    "subcategory_id": "sub-cervezas-artesanales",
+    "images": [
+      "https://images.unsplash.com/photo-1608270586620-248524c67de9?w=500&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": true
+  },
+  {
+    "id": "prod-103",
+    "title": "Whisky Escocés 12 Años",
+    "description": "Whisky de malta envejecido en barricas de jerez. Suave en boca con matices de miel, manzana verde y toque sutil de turba.",
+    "price": 60.00,
+    "discount_price": 45.00,
+    "rating": 4.9,
+    "category_id": "cat-whiskys",
+    "subcategory_id": "sub-whiskys-single-malt",
+    "images": [
+      "https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=500&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": true
+  },
+  {
+    "id": "prod-104",
+    "title": "Tequila Reposado Premium",
+    "description": "100% agave azul, madurado 8 meses en barricas de roble blanco americano. Aroma especiado con toques de agave cocido.",
+    "price": 42.00,
+    "discount_price": 35.00,
+    "rating": 4.7,
+    "category_id": "cat-licores",
+    "subcategory_id": "sub-tequilas",
+    "images": [
+      "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=500&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "prod-105",
+    "title": "Ginebra Botánica Extra",
+    "description": "Destilada con 12 botánicos seleccionados incluyendo enebro, piel de naranja amarga, cilantro y lavanda.",
+    "price": 38.00,
+    "discount_price": null,
+    "rating": 4.5,
+    "category_id": "cat-licores",
+    "subcategory_id": "sub-ginebras",
+    "images": [
+      "https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=500&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": false
+  },
+  {
+    "id": "prod-106",
+    "title": "Vino Blanco Chardonnay",
+    "description": "Vino fresco y frutal con equilibrio perfecto entre acidez cítrica y untuosidad de la fruta madura.",
+    "price": 24.00,
+    "discount_price": 18.00,
+    "rating": 4.4,
+    "category_id": "cat-vinos",
+    "subcategory_id": "sub-vinos-blancos",
+    "images": [
+      "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=500&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": true
+  }
+]
