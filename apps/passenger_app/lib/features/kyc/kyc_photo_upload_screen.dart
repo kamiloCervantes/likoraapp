@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_routes.dart';
 import 'kyc_repository.dart';
+import 'kyc_camera_capture_screen.dart';
 import 'package:core_models/core_models.dart';
 
 class KycPhotoUploadScreen extends StatefulWidget {
@@ -17,7 +17,6 @@ class KycPhotoUploadScreen extends StatefulWidget {
 
 class _KycPhotoUploadScreenState extends State<KycPhotoUploadScreen> {
   final KycRepository _kycRepo = KycRepository();
-  final ImagePicker _picker = ImagePicker();
 
   File? _frontImageFile;
   File? _backImageFile;
@@ -33,175 +32,34 @@ class _KycPhotoUploadScreenState extends State<KycPhotoUploadScreen> {
       (_needsBackImage ? _backImageFile != null : true) &&
       _selfieImageFile != null;
 
-  /// Abre la cámara con la dirección específica:
-  /// - 'front' y 'back' -> Cámara Trasera (rear)
-  /// - 'selfie' -> Cámara Frontal (front)
+  /// Abre la cámara nativa en vivo dentro de la app:
+  /// - Para 'selfie' -> selecciona por defecto la CÁMARA FRONTAL
+  /// - Para 'front' y 'back' -> selecciona por defecto la CÁMARA TRASERA
   Future<void> _capturePhoto(String photoType) async {
-    final isSelfie = photoType == 'selfie';
-    final cameraDevice = isSelfie ? CameraDevice.front : CameraDevice.rear;
+    final File? capturedFile = await Navigator.push<File>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => KycCameraCaptureScreen(photoType: photoType),
+      ),
+    );
 
-    // Mostrar modal con guía visual antes de disparar la cámara
-    final proceed = await _showCameraGuideModal(photoType);
-    if (!proceed) return;
+    if (capturedFile != null) {
+      setState(() {
+        if (photoType == 'front') _frontImageFile = capturedFile;
+        if (photoType == 'back') _backImageFile = capturedFile;
+        if (photoType == 'selfie') _selfieImageFile = capturedFile;
+      });
 
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.camera,
-        preferredCameraDevice: cameraDevice,
-        imageQuality: 85,
-        maxWidth: 1920,
-        maxHeight: 1080,
-      );
-
-      if (pickedFile != null) {
-        setState(() {
-          final file = File(pickedFile.path);
-          if (photoType == 'front') _frontImageFile = file;
-          if (photoType == 'back') _backImageFile = file;
-          if (photoType == 'selfie') _selfieImageFile = file;
-        });
-
-        debugPrint('📸 [Camera] Foto $photoType capturada: ${pickedFile.path}');
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Foto ${photoType.toUpperCase()} capturada correctamente'),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('❌ [Camera] Error al acceder a la cámara: $e');
+      debugPrint('📸 [KYC] Foto $photoType guardada: ${capturedFile.path}');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error al abrir la cámara: $e'),
-          backgroundColor: AppColors.error,
+          content: Text('✅ Foto ${photoType.toUpperCase()} lista'),
+          backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 2),
         ),
       );
     }
-  }
-
-  Future<bool> _showCameraGuideModal(String photoType) async {
-    final isSelfie = photoType == 'selfie';
-    final isFront = photoType == 'front';
-
-    return await showModalBottomSheet<bool>(
-          context: context,
-          backgroundColor: AppColors.surface,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          builder: (ctx) {
-            return Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          isSelfie ? Icons.face_rounded : Icons.badge_outlined,
-                          color: AppColors.primaryLight,
-                          size: 26,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isSelfie
-                                  ? 'Selfie con Prueba de Vida'
-                                  : (isFront ? 'Anverso del Documento' : 'Reverso del Documento'),
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
-                            ),
-                            Text(
-                              isSelfie ? 'Usará la Cámara Frontal' : 'Usará la Cámara Trasera',
-                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  // Guía visual interactiva
-                  Container(
-                    height: 140,
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        if (isSelfie)
-                          Container(
-                            width: 90,
-                            height: 110,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.rectangle,
-                              borderRadius: BorderRadius.circular(50),
-                              border: Border.all(color: AppColors.primary, width: 2),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.person_outline, size: 50, color: AppColors.primaryLight),
-                            ),
-                          )
-                        else
-                          Container(
-                            width: 190,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppColors.primary, width: 2),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.credit_card, size: 40, color: AppColors.primaryLight),
-                            ),
-                          ),
-                        Positioned(
-                          bottom: 8,
-                          child: Text(
-                            isSelfie ? 'Centra tu rostro bien iluminado' : 'Asegura que el texto no tenga reflejos',
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.camera_alt, color: Colors.white),
-                    label: Text(
-                      isSelfie ? 'Abrir Cámara Frontal' : 'Abrir Cámara Trasera',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    onPressed: () => Navigator.pop(ctx, true),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            );
-          },
-        ) ??
-        false;
   }
 
   Future<void> _submitAll() async {

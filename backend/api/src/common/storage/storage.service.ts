@@ -1,51 +1,138 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { StorageConfig, StorageProvider } from './entities/storage-config.entity';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
-export class StorageService {
+export class StorageService implements OnModuleInit {
   private readonly logger = new Logger(StorageService.name);
-  private readonly s3Client: S3Client | null = null;
-  private readonly bucketName: string;
-  private readonly isMockStorage: boolean;
+  private s3Client: S3Client | null = null;
+  private currentConfig: StorageConfig | null = null;
+  private readonly uploadsDir: string;
 
-  constructor(private readonly configService: ConfigService) {
-    this.bucketName = this.configService.get<string>('AWS_S3_BUCKET', 'likora-kyc-documents');
-    const region = this.configService.get<string>('AWS_REGION', 'us-east-1');
-    const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID', '');
-    const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY', '');
-    const endpoint = this.configService.get<string>('AWS_S3_ENDPOINT', undefined);
-
-    if (accessKeyId && secretAccessKey) {
-      this.s3Client = new S3Client({
-        region,
-        credentials: {
-          accessKeyId,
-          secretAccessKey,
-        },
-        endpoint: endpoint || undefined,
-        forcePathStyle: !!endpoint, // Requerido para MinIO local
-      });
-      this.isMockStorage = false;
-      this.logger.log(`[StorageService] AWS S3 / MinIO configurado en bucket: ${this.bucketName}`);
-    } else {
-      this.isMockStorage = true;
-      this.logger.warn('[StorageService] Credenciales S3 no configuradas. Operando con simulador de URLs prefirmadas para desarrollo.');
+  constructor(
+    @InjectRepository(StorageConfig)
+    private readonly storageConfigRepo: Repository<StorageConfig>,
+  ) {
+    this.uploadsDir = path.resolve(process.cwd(), 'uploads');
+    if (!fs.existsSync(this.uploadsDir)) {
+      fs.mkdirSync(this.uploadsDir, { recursive: true });
     }
   }
 
-  /**
-   * Genera URL prefirmada PUT para subida directa desde apps móviles o web
-   */
+  async onModuleInit() {
+    await this.reloadActiveConfig();
+  }
+
+  async reloadActiveConfig(): Promise<StorageConfig | null> {
+    try {
+      const active = await this.storageConfigRepo.findOne({
+        where: { is_active: true },
+        order: { updated_at: 'DESC' },
+      });
+
+      if (active && active.provider !== StorageProvider.LOCAL && active.access_key_id && active.secret_access_key) {
+        let endpoint = active.endpoint;
+        let region = active.region || 'us-east-1';
+
+        if (active.provider === StorageProvider.CLOUDFLARE_R2) {
+          region = 'auto';
+        }
+
+        this.s3Client = new S3Client({
+          region,
+          credentials: {
+            accessKeyId: active.access_key_id,
+            secretAccessKey: active.secret_access_key,
+          },
+          endpoint: endpoint || undefined,
+          forcePathStyle: active.provider === StorageProvider.MINIO,
+        });
+        this.currentConfig = active;
+        this.logger.log(`[StorageService] Proveedor activo configurado: ${active.provider} (Bucket: ${active.bucket_name})`);
+      } else {
+        this.s3Client = null;
+        this.currentConfig = active || null;
+        this.logger.log(`[StorageService] Almacenamiento LOCAL activo (Guardando en ${this.uploadsDir})`);
+      }
+      return this.currentConfig;
+    } catch (e) {
+      this.logger.warn(`[StorageService] Error al cargar configuración de storage: ${e}. Usando LOCAL.`);
+      this.s3Client = null;
+      return null;
+    }
+  }
+
+  async getActiveConfig(): Promise<StorageConfig | null> {
+    if (!this.currentConfig) {
+      await this.reloadActiveConfig();
+    }
+    return this.currentConfig;
+  }
+
+  async testConnection(config: Partial<StorageConfig>): Promise<{ success: boolean; message: string }> {
+    if (config.provider === StorageProvider.LOCAL || !config.provider) {
+      return { success: true, message: 'Almacenamiento Local verificado y listo en el servidor.' };
+    }
+
+    try {
+      let region = config.region || 'us-east-1';
+      if (config.provider === StorageProvider.CLOUDFLARE_R2) {
+        region = 'auto';
+      }
+
+      const client = new S3Client({
+        region,
+        credentials: {
+          accessKeyId: config.access_key_id || '',
+          secretAccessKey: config.secret_access_key || '',
+        },
+        endpoint: config.endpoint || undefined,
+        forcePathStyle: config.provider === StorageProvider.MINIO,
+      });
+
+      const command = new ListObjectsV2Command({
+        Bucket: config.bucket_name || '',
+        MaxKeys: 1,
+      });
+
+      await client.send(command);
+      return { success: true, message: `Conexión exitosa con ${config.provider}! Bucket verificado correctamente.` };
+    } catch (e: any) {
+      this.logger.error(`[StorageService] Error en test de conexión: ${e.message}`);
+      return { success: false, message: `Fallo de conexión: ${e.message || e}` };
+    }
+  }
+
+  async saveConfig(dto: Partial<StorageConfig>): Promise<StorageConfig> {
+    // Desactivar configs previas
+    await this.storageConfigRepo.update({}, { is_active: false });
+
+    let config = await this.storageConfigRepo.findOne({ where: { provider: dto.provider } });
+    if (!config) {
+      config = this.storageConfigRepo.create(dto);
+    } else {
+      Object.assign(config, dto);
+    }
+    config.is_active = true;
+
+    const saved = await this.storageConfigRepo.save(config);
+    await this.reloadActiveConfig();
+    return saved;
+  }
+
   async getPresignedUploadUrl(
     key: string,
     contentType: string = 'image/jpeg',
     expiresInSeconds: number = 300,
   ): Promise<{ uploadUrl: string; key: string }> {
-    if (!this.isMockStorage && this.s3Client) {
+    if (this.s3Client && this.currentConfig && this.currentConfig.provider !== StorageProvider.LOCAL) {
       const command = new PutObjectCommand({
-        Bucket: this.bucketName,
+        Bucket: this.currentConfig.bucket_name,
         Key: key,
         ContentType: contentType,
       });
@@ -53,33 +140,54 @@ export class StorageService {
       return { uploadUrl, key };
     }
 
-    // Mock para desarrollo local
-    const mockUploadUrl = `https://${this.bucketName}.s3.amazonaws.com/${key}?mock_signature=dev_upload_token_${Date.now()}`;
-    return { uploadUrl: mockUploadUrl, key };
+    // Local
+    const localUploadUrl = `http://localhost:3000/api/v1/storage/upload?key=${encodeURIComponent(key)}`;
+    return { uploadUrl: localUploadUrl, key };
   }
 
-  /**
-   * Genera URL prefirmada GET para lectura segura temporal (5 min) por administradores
-   */
   async getPresignedDownloadUrl(
     key: string,
     expiresInSeconds: number = 300,
   ): Promise<string> {
-    if (!this.isMockStorage && this.s3Client) {
+    if (this.s3Client && this.currentConfig && this.currentConfig.provider !== StorageProvider.LOCAL) {
+      if (this.currentConfig.custom_domain) {
+        return `${this.currentConfig.custom_domain.replace(/\/$/, '')}/${key}`;
+      }
+
       const command = new GetObjectCommand({
-        Bucket: this.bucketName,
+        Bucket: this.currentConfig.bucket_name,
         Key: key,
       });
       return await getSignedUrl(this.s3Client, command, { expiresIn: expiresInSeconds });
     }
 
-    // Mock para desarrollo local
-    return `https://${this.bucketName}.s3.amazonaws.com/${key}?mock_view_token_${Date.now()}`;
+    // Local
+    return `http://localhost:3000/api/v1/storage/view?key=${encodeURIComponent(key)}`;
   }
 
-  /**
-   * Genera ruta estándar organizada en S3
-   */
+  saveLocalFile(key: string, buffer: Buffer): string {
+    const safeKey = key.replace(/\.\./g, '');
+    const targetPath = path.join(this.uploadsDir, safeKey);
+    const targetDir = path.dirname(targetPath);
+
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
+    fs.writeFileSync(targetPath, buffer);
+    this.logger.log(`[StorageService] Archivo guardado localmente: ${targetPath} (${buffer.length} bytes)`);
+    return targetPath;
+  }
+
+  getLocalFilePath(key: string): string | null {
+    const safeKey = key.replace(/\.\./g, '');
+    const targetPath = path.join(this.uploadsDir, safeKey);
+    if (fs.existsSync(targetPath)) {
+      return targetPath;
+    }
+    return null;
+  }
+
   generateKycKey(
     userId: string,
     verificationId: string,

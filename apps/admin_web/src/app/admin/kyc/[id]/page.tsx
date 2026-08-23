@@ -1,53 +1,108 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ShieldCheck, ArrowLeft, CheckCircle2, XCircle, RotateCw, ZoomIn, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { ArrowLeft, CheckCircle2, XCircle, ShieldCheck, ZoomIn, RotateCw, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
-export default function KycAuditDetailPage({ params }: { params: { id: string } }) {
+export default function KycDetailPage() {
+  const params = useParams();
   const router = useRouter();
+  const id = params?.id as string;
+
+  const [detail, setDetail] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [isApproving, setIsApproving] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('BLURRY_IMAGE');
   const [customNotes, setCustomNotes] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [rotation, setRotation] = useState(0);
 
-  const mockDetail = {
-    id: params.id,
-    user: {
-      id: 'usr-101',
-      display_name: 'Santiago Morales',
-      email: 'santiago.m@gmail.com',
-      phone_number: '+52 55 1234 5678',
-    },
-    document_type: 'DNI / Cédula',
-    decrypted_document_number: '74829103-X',
-    extracted_birth_date: '2004-03-12',
-    calculated_age: 22,
-    is_legal_age: true,
-    front_image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&q=80',
-    back_image_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&q=80',
-    selfie_image_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800&q=80',
+  const [rotation, setRotation] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(1);
+
+  const fetchDetail = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`http://localhost:3000/api/v1/admin/kyc/${id}`);
+      if (res.ok) {
+        const json = await res.json();
+        setDetail(json.data || json);
+      }
+    } catch (e) {
+      console.error('Error fetching KYC detail:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  useEffect(() => {
+    if (id) fetchDetail();
+  }, [id]);
+
   const handleApprove = async () => {
-    setIsApproving(true);
-    await new Promise((r) => setTimeout(r, 800));
-    alert('✅ Solicitud KYC Aprobada exitosamente. El usuario ha sido notificado.');
-    router.push('/admin/kyc');
+    try {
+      setIsApproving(true);
+      const res = await fetch(`http://localhost:3000/api/v1/admin/kyc/${id}/approve`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (res.ok) {
+        alert('✅ ¡Solicitud KYC Aprobada exitosamente! El usuario ahora tiene estado VERIFIED.');
+        router.push('/admin/kyc');
+      } else {
+        alert('Error al aprobar solicitud');
+      }
+    } catch (e) {
+      alert(`Error de red: ${e}`);
+    } finally {
+      setIsApproving(false);
+    }
   };
 
   const handleReject = async () => {
-    await new Promise((r) => setTimeout(r, 600));
-    alert(`❌ Solicitud Rechazada por motivo: ${rejectReason}`);
-    setShowRejectModal(false);
-    router.push('/admin/kyc');
+    try {
+      const res = await fetch(`http://localhost:3000/api/v1/admin/kyc/${id}/reject`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: rejectReason,
+          custom_notes: customNotes,
+        }),
+      });
+
+      if (res.ok) {
+        alert(`❌ Solicitud Rechazada. Motivo: ${rejectReason}`);
+        setShowRejectModal(false);
+        router.push('/admin/kyc');
+      } else {
+        alert('Error al rechazar solicitud');
+      }
+    } catch (e) {
+      alert(`Error: ${e}`);
+    }
   };
 
+  if (loading) {
+    return (
+      <div className="p-16 text-center text-slate-400 bg-slate-950 min-h-screen">
+        <RefreshCw size={32} className="animate-spin mx-auto text-indigo-500 mb-3" />
+        Cargando expediente de verificación...
+      </div>
+    );
+  }
+
+  if (!detail) {
+    return (
+      <div className="p-16 text-center text-slate-400 space-y-4 bg-slate-950 min-h-screen">
+        <div className="text-lg text-white">No se encontró el expediente KYC.</div>
+        <Link href="/admin/kyc" className="text-indigo-400 underline">Volver a la lista</Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-8 max-w-6xl mx-auto p-6 bg-slate-950 min-h-screen text-slate-100">
       {/* Top bar */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-4">
         <Link href="/admin/kyc" className="flex items-center gap-2 text-slate-400 hover:text-white transition text-sm">
@@ -76,25 +131,27 @@ export default function KycAuditDetailPage({ params }: { params: { id: string } 
       {/* User & Document Metadata Card */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800">
         <div>
-          <div className="text-xs text-slate-400">Nombre del Usuario</div>
-          <div className="text-base font-bold text-white mt-0.5">{mockDetail.user.display_name}</div>
-          <div className="text-xs text-slate-400">{mockDetail.user.email}</div>
+          <div className="text-xs text-slate-400 font-medium">Nombre del Usuario</div>
+          <div className="text-base font-bold text-white mt-1">{detail.user?.display_name || 'N/A'}</div>
+          <div className="text-xs text-slate-400 mt-0.5">{detail.user?.email || 'Sin email'}</div>
         </div>
         <div>
-          <div className="text-xs text-slate-400">Tipo y Número de Doc</div>
-          <div className="text-base font-bold text-indigo-300 font-mono mt-0.5">{mockDetail.decrypted_document_number}</div>
-          <div className="text-xs text-slate-400">{mockDetail.document_type}</div>
+          <div className="text-xs text-slate-400 font-medium">Documento Desencriptado</div>
+          <div className="text-base font-bold text-indigo-300 font-mono mt-1">{detail.decrypted_document_number || 'Protegido'}</div>
+          <div className="text-xs text-slate-400 mt-0.5">Tipo: {detail.document_type}</div>
         </div>
         <div>
-          <div className="text-xs text-slate-400">Fecha Nacimiento Extraída</div>
-          <div className="text-base font-bold text-white font-mono mt-0.5">{mockDetail.extracted_birth_date}</div>
-          <div className="text-xs text-slate-400">Formato AAAA-MM-DD</div>
+          <div className="text-xs text-slate-400 font-medium">Fecha Nacimiento Extraída</div>
+          <div className="text-base font-bold text-white font-mono mt-1">{detail.extracted_birth_date}</div>
+          <div className="text-xs text-slate-400 mt-0.5">Formato AAAA-MM-DD</div>
         </div>
         <div>
-          <div className="text-xs text-slate-400">Validación de Mayoría de Edad</div>
+          <div className="text-xs text-slate-400 font-medium">Validación Legal (+18)</div>
           <div className="flex items-center gap-2 mt-1">
-            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs">
-              ✓ {mockDetail.calculated_age} Años (Mayor de Edad)
+            <span className={`px-3 py-1 rounded-full font-bold text-xs ${
+              detail.calculated_age >= 18 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+            }`}>
+              ✓ {detail.calculated_age} Años ({detail.calculated_age >= 18 ? 'Mayor de Edad Legal' : 'Menor de Edad'})
             </span>
           </div>
         </div>
@@ -116,12 +173,16 @@ export default function KycAuditDetailPage({ params }: { params: { id: string } 
             </div>
           </div>
           <div className="h-64 rounded-lg bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800">
-            <img
-              src={mockDetail.front_image_url}
-              alt="Frontal"
-              className="max-h-full max-w-full object-contain transition-transform duration-300"
-              style={{ transform: `scale(${zoomLevel}) rotate(${rotation}deg)` }}
-            />
+            {detail.front_image_url ? (
+              <img
+                src={detail.front_image_url}
+                alt="Frontal"
+                className="max-h-full max-w-full object-contain transition-transform duration-300"
+                style={{ transform: `scale(${zoomLevel}) rotate(${rotation}deg)` }}
+              />
+            ) : (
+              <span className="text-slate-500 text-xs">Sin foto frontal</span>
+            )}
           </div>
         </div>
 
@@ -131,7 +192,11 @@ export default function KycAuditDetailPage({ params }: { params: { id: string } 
             <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Reverso / Dorsal</span>
           </div>
           <div className="h-64 rounded-lg bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800">
-            <img src={mockDetail.back_image_url} alt="Reverso" className="max-h-full max-w-full object-contain" />
+            {detail.back_image_url ? (
+              <img src={detail.back_image_url} alt="Reverso" className="max-h-full max-w-full object-contain" />
+            ) : (
+              <span className="text-slate-500 text-xs">No requerida (Pasaporte) o no adjunta</span>
+            )}
           </div>
         </div>
 
@@ -141,7 +206,11 @@ export default function KycAuditDetailPage({ params }: { params: { id: string } 
             <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Selfie (Prueba de Vida)</span>
           </div>
           <div className="h-64 rounded-lg bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800">
-            <img src={mockDetail.selfie_image_url} alt="Selfie" className="max-h-full max-w-full object-contain" />
+            {detail.selfie_image_url ? (
+              <img src={detail.selfie_image_url} alt="Selfie" className="max-h-full max-w-full object-contain" />
+            ) : (
+              <span className="text-slate-500 text-xs">Sin foto selfie</span>
+            )}
           </div>
         </div>
       </div>

@@ -15,6 +15,7 @@ import { User } from './users/entities/user.entity';
 import { FederatedIdentity } from './auth/entities/federated-identity.entity';
 import { IdentityVerification } from './kyc/entities/identity-verification.entity';
 import { UserSession } from './auth/entities/user-session.entity';
+import { StorageConfig } from './common/storage/entities/storage-config.entity';
 
 @Module({
   imports: [
@@ -31,7 +32,7 @@ import { UserSession } from './auth/entities/user-session.entity';
         username: configService.get<string>('DATABASE_USER', 'likora_user'),
         password: configService.get<string>('DATABASE_PASSWORD', 'likora_secret'),
         database: configService.get<string>('DATABASE_NAME', 'likora_db'),
-        entities: [User, FederatedIdentity, IdentityVerification, UserSession],
+        entities: [User, FederatedIdentity, IdentityVerification, UserSession, StorageConfig],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         logging: configService.get<string>('NODE_ENV') === 'development',
       }),
