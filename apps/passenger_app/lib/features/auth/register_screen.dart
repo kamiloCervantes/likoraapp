@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_routes.dart';
 import '../../core/utils/validators.dart';
+import '../../core/services/api_client.dart';
 import '../../data/app_state.dart';
 import '../../data/models/user_model.dart';
 import 'auth_repository.dart';
@@ -43,9 +44,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     setState(() => _isLoading = true);
-
-    debugPrint('📱 [RegisterScreen] Botón Sign Up presionado!');
-    debugPrint('📝 Datos: Email=${_emailController.text}, Nombre=${_displayNameController.text}, Fecha=${_selectedBirthDate?.toIso8601String().split('T').first}');
 
     final birthDateIso = _selectedBirthDate?.toIso8601String().split('T').first;
 
@@ -91,13 +89,74 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _handleGoogleRegister(AppState appState) async {
     setState(() => _isGoogleLoading = true);
 
-    final result = await _authRepo.loginWithGoogle();
+    final result = await _authRepo.loginWithGoogle(isRegistration: true);
 
     if (!mounted) return;
     setState(() => _isGoogleLoading = false);
 
     if (result['success'] == true) {
       final userJson = result['user'];
+      final alreadyRegistered = result['already_registered'] == true;
+
+      if (alreadyRegistered) {
+        final email = userJson?['email'] ?? 'seleccionada';
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.info_outline_rounded, color: AppColors.accent, size: 26),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text('Cuenta ya registrada', style: TextStyle(color: Colors.white, fontSize: 18)),
+                ),
+              ],
+            ),
+            content: Text(
+              'La cuenta de Google ($email) ya se encuentra registrada en Likora.\n\n¿Deseas iniciar sesión directamente?',
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.4),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  if (result['token'] != null && result['refreshToken'] != null) {
+                    ApiClient.setTokens(
+                      accessToken: result['token'],
+                      refreshToken: result['refreshToken'],
+                    );
+                  }
+                  if (userJson != null) {
+                    appState.currentUser = UserModel(
+                      id: userJson['id'],
+                      name: userJson['display_name'] ?? 'Usuario Google',
+                      email: userJson['email'] ?? '',
+                      role: UserRole.client,
+                    );
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('✅ ¡Sesión iniciada como ${appState.currentUser?.name}!'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                  Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
+                },
+                child: const Text('Iniciar Sesión', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
       if (userJson != null) {
         appState.currentUser = UserModel(
           id: userJson['id'],

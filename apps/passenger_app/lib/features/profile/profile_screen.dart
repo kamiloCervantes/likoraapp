@@ -2,9 +2,19 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_routes.dart';
 import '../../data/app_state.dart';
+import '../auth/auth_repository.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  Future<void> _handleLogout(BuildContext context, AppState appState) async {
+    final authRepo = AuthRepository();
+    await authRepo.logout();
+    appState.currentUser = null;
+
+    if (!context.mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,19 +24,18 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Perfil'),
-        centerTitle: true,
+        title: const Text('Mi Perfil'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            const SizedBox(height: 10),
-
-            // Profile Avatar display (Sofia Ramirez)
+            // User Avatar and Name display
             CircleAvatar(
-              radius: 54,
-              backgroundColor: AppColors.cardBg,
+              radius: 50,
+              backgroundColor: AppColors.primary,
               backgroundImage: user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty
                   ? NetworkImage(user.avatarUrl!)
                   : null,
@@ -37,7 +46,7 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 14),
 
             Text(
-              user?.name ?? 'Sofia Ramirez',
+              user?.name ?? 'Usuario Likora',
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -46,7 +55,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              user?.email ?? 'sofia.ramirez@email.com',
+              user?.email ?? '',
               style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 14,
@@ -106,10 +115,11 @@ class ProfileScreen extends StatelessWidget {
                 backgroundColor: AppColors.cardBg,
                 foregroundColor: AppColors.error,
                 side: const BorderSide(color: AppColors.border),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               ),
               icon: const Icon(Icons.logout_rounded),
-              label: const Text('Cerrar Sesión'),
-              onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
+              label: const Text('Cerrar Sesión', style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () => _handleLogout(context, appState),
             ),
             const SizedBox(height: 30),
           ],

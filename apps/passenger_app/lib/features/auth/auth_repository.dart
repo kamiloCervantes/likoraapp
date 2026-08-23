@@ -80,6 +80,7 @@ class AuthRepository {
           'success': true,
           'user': data['user'],
           'token': data['access_token'],
+          'is_new_user': true,
         };
       } else {
         final errorData = jsonDecode(response.body);
@@ -114,8 +115,8 @@ class AuthRepository {
         phoneNumber: phone,
       );
 
-  Future<Map<String, dynamic>> loginWithGoogle() async {
-    debugPrint('🌐 [AuthRepository] Iniciando flujo nativo de Google Sign-In...');
+  Future<Map<String, dynamic>> loginWithGoogle({bool isRegistration = false}) async {
+    debugPrint('🌐 [AuthRepository] Iniciando flujo nativo de Google Sign-In (isRegistration: $isRegistration)...');
     try {
       final clientId = AppConfig.googleServerClientId.trim();
       final googleSignIn = GoogleSignIn(
@@ -123,42 +124,60 @@ class AuthRepository {
         scopes: ['email', 'profile'],
       );
 
+      // Desconectar sesión previa en caché para que SIEMPRE aparezca el selector de cuentas
+      try {
+        await googleSignIn.signOut();
+      } catch (e) {
+        debugPrint('ℹ️ [AuthRepository] signOut previo omitido: $e');
+      }
+
       final account = await googleSignIn.signIn();
       if (account == null) {
         debugPrint('ℹ️ [AuthRepository] Inicio de sesión con Google cancelado por el usuario');
         return {'success': false, 'error': 'Inicio de sesión con Google cancelado.'};
       }
 
-      debugPrint('👤 [Google Account]: ${account.displayName} (${account.email})');
+      debugPrint('👤 [Google Account Seleccionada]: ${account.displayName} (${account.email})');
       final auth = await account.authentication;
       final idToken = auth.idToken;
 
       if (idToken == null || idToken.isEmpty) {
-        debugPrint('⚠️ [AuthRepository] Google no retornó idToken. Verifique el Web Client ID en .env');
+        debugPrint('⚠️ [AuthRepository] Google no retornó idToken.');
         return {
           'success': false,
           'error': 'No se pudo obtener el token de Google. Verifique la configuración de Google Cloud.',
         };
       }
 
-      debugPrint('🔑 [Google ID Token obtenido]: ${idToken.substring(0, 25)}...');
+      debugPrint('🔑 [Google ID Token]: ${idToken.substring(0, 25)}...');
 
       final response = await ApiClient.post('/auth/google/token', body: {
         'id_token': idToken,
         'app_source': 'CONSUMER_APP',
+        'is_registration': isRegistration,
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        ApiClient.setTokens(
-          accessToken: data['access_token'],
-          refreshToken: data['refresh_token'],
-        );
-        debugPrint('🎉 [AuthRepository] Autenticación Google exitosa en Backend Likora!');
+
+        final alreadyRegistered = data['already_registered'] == true;
+        final isNewUser = data['is_new_user'] == true;
+
+        if (!alreadyRegistered) {
+          ApiClient.setTokens(
+            accessToken: data['access_token'],
+            refreshToken: data['refresh_token'],
+          );
+        }
+
         return {
           'success': true,
           'user': data['user'],
           'token': data['access_token'],
+          'refreshToken': data['refresh_token'],
+          'is_new_user': isNewUser,
+          'already_registered': alreadyRegistered,
+          'message': data['message'],
         };
       } else {
         final err = jsonDecode(response.body);
@@ -171,5 +190,18 @@ class AuthRepository {
       debugPrint('📍 $stack');
       return {'success': false, 'error': 'Excepción con Google: $e'};
     }
+  }
+
+  Future<void> logout() async {
+    try {
+      await ApiClient.post('/auth/logout');
+    } catch (e) {}
+
+    ApiClient.clearTokens();
+
+    try {
+      final googleSignIn = GoogleSignIn();
+      await googleSignIn.signOut();
+    } catch (e) {}
   }
 }

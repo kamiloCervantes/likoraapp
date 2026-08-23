@@ -66,33 +66,30 @@ export class AuthController {
     return this.authService.getMe(user.id);
   }
 
-  // ----------------------------------------------------
-  // ----------------------------------------------------
-  // GOOGLE ID TOKEN (Native Mobile Sign-In)
-  // ----------------------------------------------------
   @Post('google/token')
   @HttpCode(HttpStatus.OK)
   async googleTokenAuth(
     @Body('id_token') idToken: string,
     @Body('idToken') idTokenAlt: string,
     @Body('app_source') appSource: string,
+    @Body('is_registration') isRegistration: boolean,
     @Req() req: Request,
   ) {
     const token = idToken || idTokenAlt;
-    return this.authService.authenticateGoogleIdToken(token, appSource as any, {
-      ip: req.ip || '127.0.0.1',
-      userAgent: req.headers['user-agent'] || 'LikoraMobileClient',
-    });
+    return this.authService.authenticateGoogleIdToken(
+      token,
+      appSource as any,
+      {
+        ip: req.ip || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || 'LikoraMobileClient',
+      },
+      isRegistration === true,
+    );
   }
 
-  // ----------------------------------------------------
-  // GOOGLE OAUTH
-  // ----------------------------------------------------
   @Get('google')
   @UseGuards(GoogleAuthGuard)
-  async googleAuth() {
-    // Redirige a Google
-  }
+  async googleAuth() {}
 
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
@@ -100,14 +97,9 @@ export class AuthController {
     this.handleOAuthRedirect(req.user, res, req.query?.state);
   }
 
-  // ----------------------------------------------------
-  // FACEBOOK OAUTH
-  // ----------------------------------------------------
   @Get('facebook')
   @UseGuards(FacebookAuthGuard)
-  async facebookAuth() {
-    // Redirige a Facebook
-  }
+  async facebookAuth() {}
 
   @Get('facebook/callback')
   @UseGuards(FacebookAuthGuard)
@@ -115,14 +107,9 @@ export class AuthController {
     this.handleOAuthRedirect(req.user, res, req.query?.state);
   }
 
-  // ----------------------------------------------------
-  // MICROSOFT OAUTH
-  // ----------------------------------------------------
   @Get('microsoft')
   @UseGuards(MicrosoftAuthGuard)
-  async microsoftAuth() {
-    // Redirige a Microsoft
-  }
+  async microsoftAuth() {}
 
   @Get('microsoft/callback')
   @UseGuards(MicrosoftAuthGuard)
@@ -130,18 +117,12 @@ export class AuthController {
     this.handleOAuthRedirect(req.user, res, req.query?.state);
   }
 
-  // ----------------------------------------------------
-  // APPLE OAUTH (POST Form Callback)
-  // ----------------------------------------------------
   @Post('apple/callback')
   @UseGuards(AppleAuthGuard)
   async appleCallback(@Req() req: any, @Res() res: Response) {
     this.handleOAuthRedirect(req.user, res, req.body?.state);
   }
 
-  /**
-   * Maneja la redirección hacia Apps Móviles (Deep Link) o Admin Web
-   */
   private handleOAuthRedirect(authResponse: any, res: Response, stateRaw?: any) {
     let appSource = 'CONSUMER_APP';
     try {
@@ -159,7 +140,6 @@ export class AuthController {
       return res.redirect(redirectUrl);
     }
 
-    // Apps móviles (passenger_app o driver_app)
     const scheme = appSource === 'DRIVER_APP' ? 'likoradriver' : 'likora';
     const deepLink = `${scheme}://oauth/success?access_token=${token}&refresh_token=${refreshToken}`;
     return res.redirect(deepLink);

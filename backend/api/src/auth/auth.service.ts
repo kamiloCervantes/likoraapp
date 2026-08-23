@@ -41,108 +41,98 @@ export class AuthService {
     private readonly redisService: RedisService,
   ) {}
 
-  /**
-   * Valida credenciales de login local (email + password)
-   */
-  async validateLocalUser(email: string, pass: string): Promise<User | null> {
-    const user = await this.userRepo.findOne({
-      where: { email: email.toLowerCase().trim() },
-    });
+  async registerLocal(dto: RegisterDto, reqInfo: { ip: string; userAgent: string }): Promise<AuthResponseDto> {
+    const emailNorm = dto.email ? dto.email.toLowerCase().trim() : null;
+    const phoneNorm = dto.phone_number ? dto.phone_number.trim() : null;
 
-    if (!user || !user.password_hash) {
-      return null;
-    }
-
-    const isMatch = await bcrypt.compare(pass, user.password_hash);
-    if (!isMatch) {
-      return null;
-    }
-
-    if (user.status === UserStatus.SUSPENDED) {
-      throw new UnauthorizedException('La cuenta de usuario se encuentra suspendida.');
-    }
-
-    return user;
-  }
-
-  /**
-   * Registro con Email y Password
-   */
-  async registerLocal(
-    dto: RegisterDto,
-    reqInfo: { ip: string; userAgent: string },
-  ): Promise<AuthResponseDto> {
-    const emailNorm = dto.email.toLowerCase().trim();
-
-    const existingEmail = await this.userRepo.findOne({ where: { email: emailNorm } });
-    if (existingEmail) {
-      throw new ConflictException('El correo electrónico ya se encuentra registrado');
-    }
-
-    if (dto.phone_number) {
-      const existingPhone = await this.userRepo.findOne({
-        where: { phone_number: dto.phone_number },
-      });
-      if (existingPhone) {
-        throw new ConflictException('El número de teléfono ya se encuentra registrado');
+    if (emailNorm) {
+      const existing = await this.userRepo.findOne({ where: { email: emailNorm } });
+      if (existing) {
+        throw new ConflictException('El correo electrónico ya se encuentra registrado.');
       }
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(dto.password, salt);
+    if (phoneNorm) {
+      const existing = await this.userRepo.findOne({ where: { phone_number: phoneNorm } });
+      if (existing) {
+        throw new ConflictException('El número de teléfono ya se encuentra registrado.');
+      }
+    }
 
-    const user = this.userRepo.create({
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(dto.password, saltRounds);
+
+    const newUser = this.userRepo.create({
       email: emailNorm,
-      email_verified: false,
-      phone_number: dto.phone_number || null,
-      phone_verified: false,
+      phone_number: phoneNorm,
       password_hash: passwordHash,
-      display_name: dto.display_name,
+      display_name: dto.display_name.trim(),
       birth_date: dto.birth_date ? new Date(dto.birth_date) : null,
       role: UserRole.CONSUMER,
       status: UserStatus.ACTIVE,
       kyc_status: KycStatus.NOT_STARTED,
     });
 
-    const savedUser = await this.userRepo.save(user);
-    const appSource = dto.app_source || AppSource.CONSUMER_APP;
-
-    return this.generateTokens(savedUser, appSource, reqInfo);
+    const savedUser = await this.userRepo.save(newUser);
+    const authRes = await this.generateTokens(savedUser, AppSource.CONSUMER_APP, reqInfo);
+    return { ...authRes, is_new_user: true } as any;
   }
 
-  /**
-   * Login Local
-   */
-  async loginLocal(
-    dto: LoginDto,
-    reqInfo: { ip: string; userAgent: string },
-  ): Promise<AuthResponseDto> {
-    const user = await this.validateLocalUser(dto.email, dto.password);
-    if (!user) {
-      throw new UnauthorizedException('Correo electrónico o contraseña incorrectos');
+  async validateLocalUser(email: string, password: string): Promise<User> {
+    const identifier = email.toLowerCase().trim();
+    const user = await this.userRepo.findOne({
+      where: [{ email: identifier }, { phone_number: identifier }],
+    });
+
+    if (!user || !user.password_hash) {
+      throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const appSource = dto.app_source || AppSource.CONSUMER_APP;
-    return this.generateTokens(user, appSource, reqInfo);
+    if (user.status === UserStatus.SUSPENDED) {
+      throw new UnauthorizedException('La cuenta de usuario se encuentra suspendida.');
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    return user;
   }
 
-  /**
-   * Validación y Registro/Vinculación Segura OAuth (Google, Apple, Facebook, Microsoft)
-   */
-  /**
-   * Autenticación Nativa Móvil mediante Google ID Token
-   */
+  async loginLocal(dto: LoginDto, reqInfo: { ip: string; userAgent: string }): Promise<AuthResponseDto> {
+    const identifier = dto.email.toLowerCase().trim();
+    const user = await this.userRepo.findOne({
+      where: [{ email: identifier }, { phone_number: identifier }],
+    });
+
+    if (!user || !user.password_hash) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    if (user.status === UserStatus.SUSPENDED) {
+      throw new UnauthorizedException('La cuenta de usuario se encuentra suspendida.');
+    }
+
+    const isMatch = await bcrypt.compare(dto.password, user.password_hash);
+    if (!isMatch) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    return this.generateTokens(user, AppSource.CONSUMER_APP, reqInfo);
+  }
+
   async authenticateGoogleIdToken(
     idToken: string,
     appSource: AppSource = AppSource.CONSUMER_APP,
     reqInfo: { ip: string; userAgent: string },
-  ): Promise<AuthResponseDto> {
+    isRegistrationFlow: boolean = false,
+  ): Promise<any> {
     if (!idToken) {
       throw new BadRequestException('El id_token de Google es obligatorio.');
     }
 
     try {
-      // Verificar y decodificar el ID Token contra la API de Google
       const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
       if (!response.ok) {
         throw new UnauthorizedException('Token de Google inválido o expirado.');
@@ -154,7 +144,7 @@ export class AuthService {
       const emailVerified = payload.email_verified === 'true' || payload.email_verified === true;
       const displayName = payload.name || payload.given_name || 'Usuario Google';
 
-      return await this.validateOAuthUser(
+      const oauthResult = await this.validateOAuthUser(
         {
           provider: AuthProvider.GOOGLE,
           provider_user_id: googleUserId,
@@ -166,6 +156,17 @@ export class AuthService {
         appSource,
         reqInfo,
       );
+
+      // Si el usuario intentó registrarse pero ya estaba registrado previamente
+      if (isRegistrationFlow && !oauthResult.is_new_user) {
+        return {
+          ...oauthResult,
+          already_registered: true,
+          message: `La cuenta de Google (${email}) ya se encuentra registrada en Likora.`,
+        };
+      }
+
+      return oauthResult;
     } catch (e: any) {
       if (e instanceof UnauthorizedException || e instanceof BadRequestException) {
         throw e;
@@ -178,27 +179,26 @@ export class AuthService {
     profile: OAuthProfileDto,
     appSource: AppSource,
     reqInfo: { ip: string; userAgent: string },
-  ): Promise<AuthResponseDto> {
-    // 1. Buscar si ya existe la identidad federada vinculada
+  ): Promise<AuthResponseDto & { is_new_user: boolean }> {
     let federated = await this.federatedRepo.findOne({
       where: { provider: profile.provider, provider_user_id: profile.provider_user_id },
       relations: ['user'],
     });
 
     let user: User;
+    let isNewUser = false;
 
     if (federated && federated.user) {
       user = federated.user;
+      isNewUser = false;
       if (user.status === UserStatus.SUSPENDED) {
         throw new UnauthorizedException('La cuenta de usuario se encuentra suspendida.');
       }
-      // Actualizar datos del perfil si cambiaron
       if (profile.raw_profile) {
         federated.raw_profile_data = profile.raw_profile;
         await this.federatedRepo.save(federated);
       }
     } else {
-      // 2. Si no existe identidad federada, verificar si ya existe un usuario con el mismo email (Safe Account Linking)
       const emailNorm = profile.email ? profile.email.toLowerCase().trim() : null;
       let existingUser: User | null = null;
 
@@ -207,14 +207,13 @@ export class AuthService {
       }
 
       if (existingUser) {
-        // Safe Account Linking: Vincular la nueva identidad social al usuario existente
         user = existingUser;
+        isNewUser = false;
         if (profile.email_verified && !user.email_verified) {
           user.email_verified = true;
           await this.userRepo.save(user);
         }
       } else {
-        // Crear nuevo usuario
         const newUser = this.userRepo.create({
           email: emailNorm,
           email_verified: profile.email_verified ?? false,
@@ -224,9 +223,9 @@ export class AuthService {
           kyc_status: KycStatus.NOT_STARTED,
         });
         user = await this.userRepo.save(newUser);
+        isNewUser = true;
       }
 
-      // Crear registro de FederatedIdentity
       federated = this.federatedRepo.create({
         user_id: user.id,
         provider: profile.provider,
@@ -237,22 +236,21 @@ export class AuthService {
       await this.federatedRepo.save(federated);
     }
 
-    return this.generateTokens(user, appSource, reqInfo);
+    const tokens = await this.generateTokens(user, appSource, reqInfo);
+    return {
+      ...tokens,
+      is_new_user: isNewUser,
+    };
   }
 
-  /**
-   * Generación de Tokens (Access Token 15m + Refresh Token 7d) y registro de Sesión
-   */
   async generateTokens(
     user: User,
     appSource: AppSource,
     reqInfo: { ip: string; userAgent: string },
   ): Promise<AuthResponseDto> {
-    // 1. Generar token opaco criptográfico para refresh
     const rawRefreshToken = crypto.randomBytes(40).toString('hex');
     const refreshTokenHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
 
-    // 2. Crear sesión en PostgreSQL (7 días de vigencia)
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -268,7 +266,6 @@ export class AuthService {
 
     const savedSession = await this.sessionRepo.save(session);
 
-    // 3. Registrar sesión activa en Redis
     const ttlSeconds = 7 * 24 * 60 * 60;
     await this.redisService.set(
       `session:${savedSession.id}`,
@@ -277,7 +274,6 @@ export class AuthService {
     );
     await this.redisService.sadd(`user_sessions:${user.id}`, savedSession.id);
 
-    // 4. Firmar Access Token JWT (15 minutos)
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -293,7 +289,7 @@ export class AuthService {
     return {
       access_token: accessToken,
       refresh_token: `${savedSession.id}.${rawRefreshToken}`,
-      expires_in: 900, // 15 minutos en segundos
+      expires_in: 900,
       token_type: 'Bearer',
       user: {
         id: user.id,
@@ -312,9 +308,6 @@ export class AuthService {
     };
   }
 
-  /**
-   * Refresh Token Rotation: Invalida el token anterior y emite uno nuevo
-   */
   async refreshTokens(
     combinedRefreshToken: string,
     reqInfo: { ip: string; userAgent: string },
@@ -336,40 +329,31 @@ export class AuthService {
       throw new UnauthorizedException('Sesión no encontrada');
     }
 
-    // Detección de Reutilización de Tokens Revocados (Reuse Detection)
     if (session.is_revoked) {
-      // Posible ataque de repetición: Revocar TODAS las sesiones activas del usuario
       await this.revokeAllUserSessions(session.user_id);
       throw new UnauthorizedException(
         'Alerta de seguridad: Intento de reutilización de sesión revocada. Todas las sesiones activas han sido cerradas.',
       );
     }
 
-    // Verificar hash
     if (session.refresh_token_hash !== refreshTokenHash) {
       await this.revokeAllUserSessions(session.user_id);
       throw new UnauthorizedException('Token de refresco inválido');
     }
 
-    // Verificar expiración
     if (new Date() > session.expires_at) {
       session.is_revoked = true;
       await this.sessionRepo.save(session);
       throw new UnauthorizedException('El refresh token ha expirado. Inicie sesión nuevamente.');
     }
 
-    // 1. Invalidar la sesión usada
     session.is_revoked = true;
     await this.sessionRepo.save(session);
     await this.redisService.blacklistToken(sessionId, 60 * 60);
 
-    // 2. Generar nueva sesión y tokens (Rotation)
     return this.generateTokens(session.user, session.app_source, reqInfo);
   }
 
-  /**
-   * Logout: Revoca sesión en DB y agrega a blacklist en Redis
-   */
   async logout(userId: string, sessionId?: string): Promise<{ success: boolean; message: string }> {
     if (sessionId) {
       const session = await this.sessionRepo.findOne({ where: { id: sessionId, user_id: userId } });
@@ -384,9 +368,6 @@ export class AuthService {
     return { success: true, message: 'Sesión cerrada exitosamente' };
   }
 
-  /**
-   * Revocar todas las sesiones de un usuario
-   */
   async revokeAllUserSessions(userId: string): Promise<void> {
     await this.sessionRepo.update({ user_id: userId, is_revoked: false }, { is_revoked: true });
     const sessionIds = await this.redisService.smembers(`user_sessions:${userId}`);
