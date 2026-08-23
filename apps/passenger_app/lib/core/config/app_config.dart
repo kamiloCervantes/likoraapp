@@ -20,4 +20,8 @@ class AppConfig {
   static String get environment {
     return dotenv.env['ENVIRONMENT'] ?? 'development';
   }
+
+  static String get googleServerClientId {
+    return dotenv.env['GOOGLE_SERVER_CLIENT_ID'] ?? '';
+  }
 }

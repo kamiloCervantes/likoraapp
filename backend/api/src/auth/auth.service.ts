@@ -23,6 +23,7 @@ import { RedisService } from '../redis/redis.service';
 
 import { UserRole } from '../common/enums/user-role.enum';
 import { UserStatus } from '../common/enums/user-status.enum';
+import { AuthProvider } from '../common/enums/auth-provider.enum';
 import { KycStatus } from '../common/enums/kyc-status.enum';
 import { AppSource } from '../common/enums/app-source.enum';
 
@@ -128,6 +129,51 @@ export class AuthService {
   /**
    * Validación y Registro/Vinculación Segura OAuth (Google, Apple, Facebook, Microsoft)
    */
+  /**
+   * Autenticación Nativa Móvil mediante Google ID Token
+   */
+  async authenticateGoogleIdToken(
+    idToken: string,
+    appSource: AppSource = AppSource.CONSUMER_APP,
+    reqInfo: { ip: string; userAgent: string },
+  ): Promise<AuthResponseDto> {
+    if (!idToken) {
+      throw new BadRequestException('El id_token de Google es obligatorio.');
+    }
+
+    try {
+      // Verificar y decodificar el ID Token contra la API de Google
+      const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+      if (!response.ok) {
+        throw new UnauthorizedException('Token de Google inválido o expirado.');
+      }
+
+      const payload = await response.json();
+      const googleUserId = payload.sub;
+      const email = payload.email;
+      const emailVerified = payload.email_verified === 'true' || payload.email_verified === true;
+      const displayName = payload.name || payload.given_name || 'Usuario Google';
+
+      return await this.validateOAuthUser(
+        {
+          provider: AuthProvider.GOOGLE,
+          provider_user_id: googleUserId,
+          email: email,
+          email_verified: emailVerified,
+          display_name: displayName,
+          raw_profile: payload,
+        },
+        appSource,
+        reqInfo,
+      );
+    } catch (e: any) {
+      if (e instanceof UnauthorizedException || e instanceof BadRequestException) {
+        throw e;
+      }
+      throw new UnauthorizedException(`Fallo al verificar credenciales con Google: ${e.message || e}`);
+    }
+  }
+
   async validateOAuthUser(
     profile: OAuthProfileDto,
     appSource: AppSource,

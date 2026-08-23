@@ -15,35 +15,92 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _authRepo = AuthRepository();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-
+  final _emailController = TextEditingController(text: 'cacesa8931@gmail.com');
+  final _passwordController = TextEditingController(text: 'Password123!');
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
+  final _authRepo = AuthRepository();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleLogin(AppState appState) async {
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
-    debugPrint('📱 [LoginScreen] Botón Login presionado para: ${_emailController.text}');
-
-    final result = await _authRepo.loginWithEmail(
-      _emailController.text,
-      _passwordController.text,
+    final result = await _authRepo.login(
+      email: _emailController.text,
+      password: _passwordController.text,
     );
 
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (result['success']) {
+    if (result['success'] == true) {
+      final userJson = result['user'];
+      if (userJson != null) {
+        appState.currentUser = UserModel(
+          id: userJson['id'],
+          name: userJson['display_name'] ?? 'Usuario',
+          email: userJson['email'] ?? _emailController.text,
+          role: UserRole.client,
+        );
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ ¡Bienvenido, ${appState.currentUser?.name ?? "Usuario"}!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
       Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('❌ ${result['error']}'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleGoogleSignIn(AppState appState) async {
+    setState(() => _isGoogleLoading = true);
+
+    final result = await _authRepo.loginWithGoogle();
+
+    if (!mounted) return;
+    setState(() => _isGoogleLoading = false);
+
+    if (result['success'] == true) {
+      final userJson = result['user'];
+      if (userJson != null) {
+        appState.currentUser = UserModel(
+          id: userJson['id'],
+          name: userJson['display_name'] ?? 'Usuario Google',
+          email: userJson['email'] ?? '',
+          role: UserRole.client,
+        );
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('🎉 ¡Autenticado con Google: ${appState.currentUser?.name}!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('⚠️ ${result['error']}'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -188,17 +245,56 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Social Buttons Grid (Google, Facebook, Microsoft, Apple)
                 Row(
                   children: [
-                    Expanded(child: _buildSocialButton('Google', Icons.g_mobiledata_rounded)),
+                    Expanded(
+                      child: _isGoogleLoading
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: AppColors.socialButton,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                ),
+                              ),
+                            )
+                          : _buildSocialButton(
+                              'Google',
+                              Icons.g_mobiledata_rounded,
+                              () => _handleGoogleSignIn(appState),
+                            ),
+                    ),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildSocialButton('Facebook', Icons.facebook)),
+                    Expanded(
+                      child: _buildSocialButton(
+                        'Facebook',
+                        Icons.facebook,
+                        () => Navigator.pushReplacementNamed(context, AppRoutes.mainNav),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(child: _buildSocialButton('Microsoft', Icons.window_rounded)),
+                    Expanded(
+                      child: _buildSocialButton(
+                        'Microsoft',
+                        Icons.window_rounded,
+                        () => Navigator.pushReplacementNamed(context, AppRoutes.mainNav),
+                      ),
+                    ),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildSocialButton('Apple', Icons.apple)),
+                    Expanded(
+                      child: _buildSocialButton(
+                        'Apple',
+                        Icons.apple,
+                        () => Navigator.pushReplacementNamed(context, AppRoutes.mainNav),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 32),
@@ -233,11 +329,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildSocialButton(String label, IconData icon) {
+  Widget _buildSocialButton(String label, IconData icon, VoidCallback onTap) {
     return InkWell(
-      onTap: () {
-        Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
-      },
+      onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),

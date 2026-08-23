@@ -12,6 +12,10 @@ import {
   RefreshCw,
   Clock,
   AlertTriangle,
+  FileText,
+  User,
+  Calendar,
+  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,6 +31,7 @@ export default function KycDetailPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('BLURRY_IMAGE');
   const [customNotes, setCustomNotes] = useState('');
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [rotation, setRotation] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -60,36 +65,49 @@ export default function KycDetailPage() {
 
       if (res.ok) {
         const data = await res.json();
-        alert(data.message || '✅ ¡Solicitud KYC Aprobada con vigencia de 1 hora!');
-        router.push('/admin/kyc');
+        setToastMessage({ type: 'success', text: data.message || '✅ Solicitud Aprobada con vigencia de 1 hora!' });
+        setDetail((prev: any) => ({
+          ...prev,
+          status: 'VERIFIED',
+          rejection_reason: null,
+          expires_at: data.expires_at || new Date(Date.now() + 3600000).toISOString(),
+        }));
       } else {
         const err = await res.json();
-        alert(`Error: ${err.message || 'No se pudo aprobar'}`);
+        setToastMessage({ type: 'error', text: `Error: ${err.message || 'No se pudo aprobar'}` });
       }
     } catch (e: any) {
-      alert(`Error de red: ${e.message || e}`);
+      setToastMessage({ type: 'error', text: `Error de red: ${e.message || e}` });
     } finally {
       setIsApproving(false);
     }
   };
 
-  const handleReject = async () => {
+  const handleRejectConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
       setIsRejecting(true);
+      const fullNotes = customNotes.trim();
       const res = await fetch(`http://localhost:3000/api/v1/admin/kyc/${id}/reject`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reason: rejectReason,
-          custom_notes: customNotes,
+          custom_notes: fullNotes,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        alert(data.message || '❌ Solicitud marcada como RECHAZADA');
+        const reasonText = fullNotes ? `${rejectReason}: ${fullNotes}` : rejectReason;
+        setToastMessage({ type: 'success', text: '❌ Solicitud marcada exitosamente como RECHAZADA.' });
         setShowRejectModal(false);
-        router.push('/admin/kyc');
+        setDetail((prev: any) => ({
+          ...prev,
+          status: 'REJECTED',
+          rejection_reason: reasonText,
+          expires_at: null,
+        }));
       } else {
         const err = await res.json();
         alert(`Error al rechazar: ${err.message || 'Error desconocido'}`);
@@ -124,7 +142,29 @@ export default function KycDetailPage() {
   const isPending = detail.status === 'PENDING_REVIEW';
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto p-6 bg-slate-950 min-h-screen text-slate-100">
+    <div className="space-y-8 max-w-6xl mx-auto p-6 bg-slate-950 min-h-screen text-slate-100 relative">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div
+          className={`p-4 rounded-xl flex items-center justify-between shadow-2xl transition-all ${
+            toastMessage.type === 'success'
+              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
+              : 'bg-rose-500/20 border border-rose-500/40 text-rose-300'
+          }`}
+        >
+          <div className="flex items-center gap-3 font-semibold text-sm">
+            {toastMessage.type === 'success' ? <CheckCircle2 size={20} /> : <XCircle size={20} />}
+            <span>{toastMessage.text}</span>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-xs underline text-slate-400 hover:text-white"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
+
       {/* Top bar */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-4">
         <Link href="/admin/kyc" className="flex items-center gap-2 text-slate-400 hover:text-white transition text-sm">
@@ -133,22 +173,24 @@ export default function KycDetailPage() {
         </Link>
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => setShowRejectModal(true)}
             disabled={isRejecting}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition border ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition border cursor-pointer ${
               isRejected
-                ? 'bg-rose-600/20 text-rose-300 border-rose-500/40'
-                : 'bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border-rose-500/30'
+                ? 'bg-rose-600 text-white border-rose-600 shadow-lg shadow-rose-600/20'
+                : 'bg-rose-600/20 hover:bg-rose-600 hover:text-white text-rose-300 border-rose-500/40'
             }`}
           >
             <XCircle size={16} />
-            {isRejected ? 'Actualizar Rechazo' : 'Rechazar'}
+            {isRejected ? 'Rechazada (Editar Motivo)' : 'Rechazar Solicitud'}
           </button>
 
           <button
+            type="button"
             onClick={handleApprove}
             disabled={isApproving}
-            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-white text-sm font-bold shadow-lg transition ${
+            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-white text-sm font-bold shadow-lg transition cursor-pointer ${
               isVerified
                 ? 'bg-emerald-700 hover:bg-emerald-600 shadow-emerald-700/20'
                 : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
@@ -269,58 +311,69 @@ export default function KycDetailPage() {
         </div>
       </div>
 
-      {/* Rejection Modal */}
+      {/* Modal de Rechazo Mejorado */}
       {showRejectModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <XCircle className="text-rose-500" size={22} />
-              Rechazar Solicitud KYC
-            </h3>
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999]">
+          <form onSubmit={handleRejectConfirm} className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <XCircle className="text-rose-500" size={22} />
+                Rechazar Verificación KYC
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowRejectModal(false)}
+                className="text-slate-400 hover:text-white text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
 
             <div>
-              <label className="text-xs text-slate-400 font-semibold block mb-2">Motivo Tipificado de Rechazo</label>
+              <label className="text-xs text-slate-300 font-semibold block mb-2">Motivo Tipificado de Rechazo</label>
               <select
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"
+                className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-rose-500"
               >
-                <option value="BLURRY_IMAGE">Fotografía Borrosa o Ilegible</option>
-                <option value="EXPIRED_DOCUMENT">Documento de Identidad Expirado</option>
-                <option value="UNDERAGE_DETECTED">Menor de Edad Detectado</option>
-                <option value="NAME_MISMATCH">Nombre no coincide con Documento</option>
-                <option value="SELFIE_MISMATCH">Selfie no coincide con la foto del Documento</option>
-                <option value="INVALID_DOCUMENT">Documento no Oficial / Inválido</option>
+                <option value="BLURRY_IMAGE">📷 Fotografía Borrosa o Ilegible</option>
+                <option value="EXPIRED_DOCUMENT">⌛ Documento de Identidad Expirado</option>
+                <option value="UNDERAGE_DETECTED">🔞 Menor de Edad Detectado</option>
+                <option value="NAME_MISMATCH">👤 Nombre no coincide con Documento</option>
+                <option value="SELFIE_MISMATCH">🤳 Selfie no coincide con la foto del Documento</option>
+                <option value="INVALID_DOCUMENT">📄 Documento no Oficial / Inválido</option>
               </select>
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 font-semibold block mb-2">Notas Adicionales para el Cliente (Opcional)</label>
+              <label className="text-xs text-slate-300 font-semibold block mb-2">Notas Adicionales para el Cliente (Opcional)</label>
               <textarea
                 value={customNotes}
                 onChange={(e) => setCustomNotes(e.target.value)}
                 rows={3}
                 placeholder="Indica detalles para que el cliente pueda corregir su envío..."
-                className="w-full p-3 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
               />
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => setShowRejectModal(false)}
-                className="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-sm"
+                className="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-sm font-semibold"
               >
                 Cancelar
               </button>
               <button
-                onClick={handleReject}
+                type="submit"
                 disabled={isRejecting}
-                className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-md"
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-lg shadow-rose-600/30 flex items-center gap-2"
               >
-                {isRejecting ? 'Rechazando...' : 'Confirmar Rechazo'}
+                <XCircle size={16} />
+                {isRejecting ? 'Procesando Rechazo...' : 'Confirmar Rechazo'}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
     </div>

@@ -67,6 +67,25 @@ export class AuthController {
   }
 
   // ----------------------------------------------------
+  // ----------------------------------------------------
+  // GOOGLE ID TOKEN (Native Mobile Sign-In)
+  // ----------------------------------------------------
+  @Post('google/token')
+  @HttpCode(HttpStatus.OK)
+  async googleTokenAuth(
+    @Body('id_token') idToken: string,
+    @Body('idToken') idTokenAlt: string,
+    @Body('app_source') appSource: string,
+    @Req() req: Request,
+  ) {
+    const token = idToken || idTokenAlt;
+    return this.authService.authenticateGoogleIdToken(token, appSource as any, {
+      ip: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || 'LikoraMobileClient',
+    });
+  }
+
+  // ----------------------------------------------------
   // GOOGLE OAUTH
   // ----------------------------------------------------
   @Get('google')

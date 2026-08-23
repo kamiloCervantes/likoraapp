@@ -125,3 +125,4 @@ Lo siguiente permite hacer puente con la api de Wsl desde el telefono
 adb reverse tcp:3000 tcp:3000
 adb reverse tcp:3001 tcp:3001
 
+& "C:\Users\Gateway\AppData\Local\Android\Sdk\platform-tools\adb.exe" reverse tcp:3000 tcp:3000; & "C:\Users\Gateway\AppData\Local\Android\Sdk\platform-tools\adb.exe" reverse tcp:3001 tcp:3001
