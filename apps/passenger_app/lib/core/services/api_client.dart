@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 
 class ApiClient {
-  static const String baseUrl = 'http://10.0.2.2:3000/api/v1'; // Emulador Android (o localhost)
+  static String get baseUrl => AppConfig.apiBaseUrl;
   
   static String? _accessToken;
   static String? _refreshToken;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_routes.dart';
+import 'core/config/app_config.dart';
 import 'data/app_state.dart';
 import 'data/models/category_model.dart';
 import 'data/models/product_model.dart';
@@ -21,8 +22,9 @@ import 'features/kyc/kyc_form_screen.dart';
 import 'features/kyc/kyc_photo_upload_screen.dart';
 import 'features/kyc/kyc_status_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppConfig.initialize();
   runApp(const LikoraApp());
 }
 
