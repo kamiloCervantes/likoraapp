@@ -1,0 +1,479 @@
+{
+  "info": {
+    "name": "Likora API - E-commerce Delivery Licores (+18)",
+    "_postman_id": "likora-api-collection-v1",
+    "description": "Colección completa de endpoints para autenticación federada/local, verificación KYC (+18), sesiones con Redis y auditoría backoffice.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verification_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticación Local & Sesiones",
+      "item": [
+        {
+          "name": "POST /auth/register (Nuevo Usuario)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "    pm.collectionVariables.set('access_token', res.access_token);",
+                  "    pm.collectionVariables.set('refresh_token', res.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"consumidor@likora.com\",\n  \"password\": \"Password123!\",\n  \"display_name\": \"Juan Perez\",\n  \"phone_number\": \"+525512345678\",\n  \"birth_date\": \"2000-05-15\",\n  \"app_source\": \"CONSUMER_APP\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/login (Iniciar Sesión)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "    pm.collectionVariables.set('access_token', res.access_token);",
+                  "    pm.collectionVariables.set('refresh_token', res.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"consumidor@likora.com\",\n  \"password\": \"Password123!\",\n  \"app_source\": \"CONSUMER_APP\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/refresh (Rotación de Tokens)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "    pm.collectionVariables.set('access_token', res.access_token);",
+                  "    pm.collectionVariables.set('refresh_token', res.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /auth/me (Perfil Actual)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/logout (Revocar Sesión)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Verificación KYC & Mayoría de Edad (+18)",
+      "item": [
+        {
+          "name": "POST /kyc/upload-urls (Solicitar URLs Prefirmadas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.verification_session_id) {",
+                  "    pm.collectionVariables.set('verification_id', res.verification_session_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"document_type\": \"DNI\",\n  \"has_back_image\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/kyc/upload-urls",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "kyc",
+                "upload-urls"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /kyc/submit (Enviar Datos +18)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verification_session_id\": \"{{verification_id}}\",\n  \"document_type\": \"DNI\",\n  \"document_number\": \"12345678A\",\n  \"extracted_birth_date\": \"2000-05-15\",\n  \"front_image_key\": \"kyc-documents/user/front.jpg\",\n  \"back_image_key\": \"kyc-documents/user/back.jpg\",\n  \"selfie_image_key\": \"kyc-documents/user/selfie.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/kyc/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "kyc",
+                "submit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /kyc/submit (Test Menor de Edad - Bloqueo 403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verification_session_id\": \"session-minor-test\",\n  \"document_type\": \"DNI\",\n  \"document_number\": \"99999999Z\",\n  \"extracted_birth_date\": \"2010-01-01\",\n  \"front_image_key\": \"kyc-documents/minor/front.jpg\",\n  \"selfie_image_key\": \"kyc-documents/minor/selfie.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/kyc/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "kyc",
+                "submit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /kyc/status (Consultar Estado Actual)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/kyc/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "kyc",
+                "status"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Checkout & Guard de Compra (+18)",
+      "item": [
+        {
+          "name": "POST /orders/checkout-test (Test KycGuard)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/checkout-test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "checkout-test"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Auditoría Backoffice (Admin KYC)",
+      "item": [
+        {
+          "name": "GET /admin/kyc/pending (Listar Solicitudes)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/kyc/pending?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "kyc",
+                "pending"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /admin/kyc/:id (Detalle de Verificación)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/kyc/{{verification_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "kyc",
+                "{{verification_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /admin/kyc/:id/approve (Aprobar KYC)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/kyc/{{verification_id}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "kyc",
+                "{{verification_id}}",
+                "approve"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /admin/kyc/:id/reject (Rechazar KYC)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"BLURRY_IMAGE\",\n  \"custom_notes\": \"El anverso del documento no es legible.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/kyc/{{verification_id}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "kyc",
+                "{{verification_id}}",
+                "reject"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
