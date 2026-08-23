@@ -1,0 +1,5 @@
+export enum AppSource {
+  CONSUMER_APP = 'CONSUMER_APP',
+  DRIVER_APP = 'DRIVER_APP',
+  ADMIN_WEB = 'ADMIN_WEB',
+}

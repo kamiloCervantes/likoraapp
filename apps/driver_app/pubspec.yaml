@@ -1,0 +1,26 @@
+name: driver_app
+description: "Likora - Driver Flutter Mobile Application"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  core_models:
+    path: ../../packages/core_models
+  shared_ui:
+    path: ../../packages/shared_ui
+  realtime_client:
+    path: ../../packages/realtime_client
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

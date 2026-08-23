@@ -1,0 +1,28 @@
+name: likora_monorepo
+repository: https://github.com/likora/likora_app
+
+packages:
+  - apps/passenger_app
+  - apps/driver_app
+  - packages/**
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  analyze:
+    exec: flutter analyze .
+    description: Ejecuta análisis estático en todas las apps y paquetes Flutter/Dart.
+
+  test:
+    exec: flutter test
+    description: Ejecuta las pruebas unitarias y de widgets en todos los paquetes y apps.
+
+  get:
+    exec: flutter pub get
+    description: Obtiene las dependencias en todos los paquetes.
+
+  clean:
+    exec: flutter clean
+    description: Limpia las compilaciones de todos los proyectos Flutter.

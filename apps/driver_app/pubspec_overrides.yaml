@@ -1,0 +1,8 @@
+# melos_managed_dependency_overrides: core_models,realtime_client,shared_ui
+dependency_overrides:
+  core_models:
+    path: ../../packages/core_models
+  realtime_client:
+    path: ../../packages/realtime_client
+  shared_ui:
+    path: ../../packages/shared_ui

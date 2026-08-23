@@ -1,0 +1,6 @@
+export enum DocumentType {
+  DNI = 'DNI',
+  PASSPORT = 'PASSPORT',
+  DRIVERS_LICENSE = 'DRIVERS_LICENSE',
+  FOREIGN_ID = 'FOREIGN_ID',
+}
