@@ -38,6 +38,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  void _showInDevelopmentNotice(String providerName) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.info_outline_rounded, color: AppColors.accent, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'El registro con $providerName se encuentra en desarrollo, muy pronto estará disponible.',
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.surface,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   Future<void> _handleRegister(AppState appState) async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -378,7 +402,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: _buildSocialButton(
                         'Facebook',
                         Icons.facebook,
-                        () => Navigator.pushReplacementNamed(context, AppRoutes.mainNav),
+                        () => _showInDevelopmentNotice('Facebook'),
                       ),
                     ),
                   ],
@@ -390,7 +414,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: _buildSocialButton(
                         'Microsoft',
                         Icons.window_rounded,
-                        () => Navigator.pushReplacementNamed(context, AppRoutes.mainNav),
+                        () => _showInDevelopmentNotice('Microsoft'),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -398,7 +422,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: _buildSocialButton(
                         'Apple',
                         Icons.apple,
-                        () => Navigator.pushReplacementNamed(context, AppRoutes.mainNav),
+                        () => _showInDevelopmentNotice('Apple'),
                       ),
                     ),
                   ],

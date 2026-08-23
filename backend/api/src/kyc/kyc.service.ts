@@ -342,7 +342,7 @@ export class KycService {
       });
     });
 
-    await this.redisService.set(
+await this.redisService.set(
       `kyc_event:${verification.user_id}`,
       JSON.stringify({ event: 'kyc.approved', userId: verification.user_id, expires_at: expiresAt.toISOString(), timestamp: now.toISOString() }),
       60 * 60,

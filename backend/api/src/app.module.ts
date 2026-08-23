@@ -10,12 +10,14 @@ import { OrdersModule } from './orders/orders.module';
 import { RedisModule } from './redis/redis.module';
 import { CryptoModule } from './common/crypto/crypto.module';
 import { StorageModule } from './common/storage/storage.module';
+import { EmailModule } from './common/email/email.module';
 
 import { User } from './users/entities/user.entity';
 import { FederatedIdentity } from './auth/entities/federated-identity.entity';
 import { IdentityVerification } from './kyc/entities/identity-verification.entity';
 import { UserSession } from './auth/entities/user-session.entity';
 import { StorageConfig } from './common/storage/entities/storage-config.entity';
+import { EmailConfig } from './common/email/entities/email-config.entity';
 
 @Module({
   imports: [
@@ -32,7 +34,7 @@ import { StorageConfig } from './common/storage/entities/storage-config.entity';
         username: configService.get<string>('DATABASE_USER', 'likora_user'),
         password: configService.get<string>('DATABASE_PASSWORD', 'likora_secret'),
         database: configService.get<string>('DATABASE_NAME', 'likora_db'),
-        entities: [User, FederatedIdentity, IdentityVerification, UserSession, StorageConfig],
+        entities: [User, FederatedIdentity, IdentityVerification, UserSession, StorageConfig, EmailConfig],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         logging: configService.get<string>('NODE_ENV') === 'development',
       }),
@@ -40,6 +42,7 @@ import { StorageConfig } from './common/storage/entities/storage-config.entity';
     RedisModule,
     CryptoModule,
     StorageModule,
+    EmailModule,
     UsersModule,
     AuthModule,
     KycModule,

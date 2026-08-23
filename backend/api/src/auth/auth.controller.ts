@@ -8,6 +8,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -32,6 +33,26 @@ export class AuthController {
       ip: req.ip || '127.0.0.1',
       userAgent: req.headers['user-agent'] || 'LikoraClient',
     });
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body('email') email: string) {
+    if (!email) throw new BadRequestException('El correo electrónico es obligatorio');
+    return this.authService.requestPasswordReset(email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Body('email') email: string,
+    @Body('otp_code') otpCode: string,
+    @Body('new_password') newPassword: string,
+  ) {
+    if (!email || !otpCode || !newPassword) {
+      throw new BadRequestException('Correo, código OTP y nueva contraseña son obligatorios');
+    }
+    return this.authService.resetPassword(email, otpCode, newPassword);
   }
 
   @Post('login')
@@ -97,6 +118,27 @@ export class AuthController {
     this.handleOAuthRedirect(req.user, res, req.query?.state);
   }
 
+  @Post('facebook/token')
+  @HttpCode(HttpStatus.OK)
+  async facebookTokenAuth(
+    @Body('access_token') accessToken: string,
+    @Body('accessToken') accessTokenAlt: string,
+    @Body('app_source') appSource: string,
+    @Body('is_registration') isRegistration: boolean,
+    @Req() req: Request,
+  ) {
+    const token = accessToken || accessTokenAlt;
+    return this.authService.authenticateFacebookToken(
+      token,
+      appSource as any,
+      {
+        ip: req.ip || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || 'LikoraMobileClient',
+      },
+      isRegistration === true,
+    );
+  }
+
   @Get('facebook')
   @UseGuards(FacebookAuthGuard)
   async facebookAuth() {}
@@ -107,6 +149,27 @@ export class AuthController {
     this.handleOAuthRedirect(req.user, res, req.query?.state);
   }
 
+  @Post('microsoft/token')
+  @HttpCode(HttpStatus.OK)
+  async microsoftTokenAuth(
+    @Body('access_token') accessToken: string,
+    @Body('accessToken') accessTokenAlt: string,
+    @Body('app_source') appSource: string,
+    @Body('is_registration') isRegistration: boolean,
+    @Req() req: Request,
+  ) {
+    const token = accessToken || accessTokenAlt;
+    return this.authService.authenticateMicrosoftToken(
+      token,
+      appSource as any,
+      {
+        ip: req.ip || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || 'LikoraMobileClient',
+      },
+      isRegistration === true,
+    );
+  }
+
   @Get('microsoft')
   @UseGuards(MicrosoftAuthGuard)
   async microsoftAuth() {}
@@ -115,6 +178,31 @@ export class AuthController {
   @UseGuards(MicrosoftAuthGuard)
   async microsoftCallback(@Req() req: any, @Res() res: Response) {
     this.handleOAuthRedirect(req.user, res, req.query?.state);
+  }
+
+  @Post('apple/token')
+  @HttpCode(HttpStatus.OK)
+  async appleTokenAuth(
+    @Body('identity_token') identityToken: string,
+    @Body('identityToken') identityTokenAlt: string,
+    @Body('full_name') fullName: string,
+    @Body('email') email: string,
+    @Body('app_source') appSource: string,
+    @Body('is_registration') isRegistration: boolean,
+    @Req() req: Request,
+  ) {
+    const token = identityToken || identityTokenAlt;
+    return this.authService.authenticateAppleToken(
+      token,
+      fullName,
+      email,
+      appSource as any,
+      {
+        ip: req.ip || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || 'LikoraMobileClient',
+      },
+      isRegistration === true,
+    );
   }
 
   @Post('apple/callback')

@@ -1,3 +1,4 @@
+import { EmailService } from '../common/email/email.service';
 import {
   Injectable,
   UnauthorizedException,
@@ -39,6 +40,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
+    private readonly emailService: EmailService,
   ) {}
 
   async registerLocal(dto: RegisterDto, reqInfo: { ip: string; userAgent: string }): Promise<AuthResponseDto> {
@@ -172,6 +174,186 @@ export class AuthService {
         throw e;
       }
       throw new UnauthorizedException(`Fallo al verificar credenciales con Google: ${e.message || e}`);
+    }
+  }
+
+  /**
+   * Autenticación Nativa Móvil mediante Facebook Access Token (Graph API)
+   */
+  async authenticateFacebookToken(
+    accessToken: string,
+    appSource: AppSource = AppSource.CONSUMER_APP,
+    reqInfo: { ip: string; userAgent: string },
+    isRegistrationFlow: boolean = false,
+  ): Promise<any> {
+    if (!accessToken) {
+      throw new BadRequestException('El access_token de Facebook es obligatorio.');
+    }
+
+    try {
+      const response = await fetch(
+        `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`,
+      );
+
+      if (!response.ok) {
+        throw new UnauthorizedException('Token de Facebook inválido o expirado.');
+      }
+
+      const payload = await response.json();
+      const fbUserId = payload.id;
+      const email = payload.email;
+      const displayName = payload.name || 'Usuario Facebook';
+
+      const oauthResult = await this.validateOAuthUser(
+        {
+          provider: AuthProvider.FACEBOOK,
+          provider_user_id: fbUserId,
+          email: email,
+          email_verified: !!email,
+          display_name: displayName,
+          raw_profile: payload,
+        },
+        appSource,
+        reqInfo,
+      );
+
+      if (isRegistrationFlow && !oauthResult.is_new_user) {
+        return {
+          ...oauthResult,
+          already_registered: true,
+          message: `La cuenta de Facebook (${email || displayName}) ya se encuentra registrada en Likora.`,
+        };
+      }
+
+      return oauthResult;
+    } catch (e: any) {
+      if (e instanceof UnauthorizedException || e instanceof BadRequestException) {
+        throw e;
+      }
+      throw new UnauthorizedException(`Fallo al verificar credenciales con Facebook: ${e.message || e}`);
+    }
+  }
+
+  /**
+   * Autenticación Nativa Móvil mediante Microsoft Access Token (Microsoft Graph API)
+   */
+  async authenticateMicrosoftToken(
+    accessToken: string,
+    appSource: AppSource = AppSource.CONSUMER_APP,
+    reqInfo: { ip: string; userAgent: string },
+    isRegistrationFlow: boolean = false,
+  ): Promise<any> {
+    if (!accessToken) {
+      throw new BadRequestException('El access_token de Microsoft es obligatorio.');
+    }
+
+    try {
+      const response = await fetch('https://graph.microsoft.com/v1.0/me', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new UnauthorizedException('Token de Microsoft inválido o expirado.');
+      }
+
+      const payload = await response.json();
+      const msUserId = payload.id;
+      const email = payload.mail || payload.userPrincipalName;
+      const displayName = payload.displayName || payload.givenName || 'Usuario Microsoft';
+
+      const oauthResult = await this.validateOAuthUser(
+        {
+          provider: AuthProvider.MICROSOFT,
+          provider_user_id: msUserId,
+          email: email,
+          email_verified: !!email,
+          display_name: displayName,
+          raw_profile: payload,
+        },
+        appSource,
+        reqInfo,
+      );
+
+      if (isRegistrationFlow && !oauthResult.is_new_user) {
+        return {
+          ...oauthResult,
+          already_registered: true,
+          message: `La cuenta de Microsoft (${email || displayName}) ya se encuentra registrada en Likora.`,
+        };
+      }
+
+      return oauthResult;
+    } catch (e: any) {
+      if (e instanceof UnauthorizedException || e instanceof BadRequestException) {
+        throw e;
+      }
+      throw new UnauthorizedException(`Fallo al verificar credenciales con Microsoft: ${e.message || e}`);
+    }
+  }
+
+  /**
+   * Autenticación Móvil mediante Apple Identity Token (Sign in with Apple)
+   */
+  async authenticateAppleToken(
+    identityToken: string,
+    fullName?: string,
+    rawEmail?: string,
+    appSource: AppSource = AppSource.CONSUMER_APP,
+    reqInfo: { ip: string; userAgent: string } = { ip: '127.0.0.1', userAgent: 'LikoraMobileClient' },
+    isRegistrationFlow: boolean = false,
+  ): Promise<any> {
+    if (!identityToken) {
+      throw new BadRequestException('El identity_token de Apple es obligatorio.');
+    }
+
+    try {
+      // Decodificar el JWT de Apple (Header y Payload)
+      const parts = identityToken.split('.');
+      if (parts.length !== 3) {
+        throw new BadRequestException('Formato de identity_token de Apple inválido.');
+      }
+
+      const payloadRaw = Buffer.from(parts[1], 'base64').toString('utf-8');
+      const payload = JSON.parse(payloadRaw);
+
+      if (payload.iss !== 'https://appleid.apple.com') {
+        throw new UnauthorizedException('Emisor (iss) del token de Apple no es válido.');
+      }
+
+      const appleUserId = payload.sub;
+      const email = payload.email || rawEmail;
+      const displayName = fullName || 'Usuario Apple';
+
+      const oauthResult = await this.validateOAuthUser(
+        {
+          provider: AuthProvider.APPLE,
+          provider_user_id: appleUserId,
+          email: email,
+          email_verified: true,
+          display_name: displayName,
+          raw_profile: payload,
+        },
+        appSource,
+        reqInfo,
+      );
+
+      if (isRegistrationFlow && !oauthResult.is_new_user) {
+        return {
+          ...oauthResult,
+          already_registered: true,
+          message: `La cuenta de Apple (${email || displayName}) ya se encuentra registrada en Likora.`,
+        };
+      }
+
+      return oauthResult;
+    } catch (e: any) {
+      if (e instanceof UnauthorizedException || e instanceof BadRequestException) {
+        throw e;
+      }
+      throw new UnauthorizedException(`Fallo al autenticar con Apple: ${e.message || e}`);
     }
   }
 
@@ -376,6 +558,70 @@ export class AuthService {
       await this.redisService.del(`session:${sid}`);
     }
     await this.redisService.del(`user_sessions:${userId}`);
+  }
+
+  /**
+   * Solicitar recuperación de contraseña (Genera OTP y envía correo vía EmailService)
+   */
+  async requestPasswordReset(email: string): Promise<{ success: boolean; message: string }> {
+    const emailNorm = email.toLowerCase().trim();
+    const user = await this.userRepo.findOne({ where: { email: emailNorm } });
+
+    if (!user) {
+      // Retornar mensaje genérico para no filtrar existencia de correos
+      return {
+        success: true,
+        message: 'Si el correo electrónico se encuentra registrado, recibirás un código de verificación en breve.',
+      };
+    }
+
+    // Generar código OTP numérico de 6 dígitos
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const ttlSeconds = 15 * 60; // 15 minutos
+
+    await this.redisService.set(`password_reset_otp:${emailNorm}`, otpCode, ttlSeconds);
+
+    // Enviar correo transaccional vía EmailService
+    await this.emailService.sendPasswordResetOtpEmail(
+      emailNorm,
+      user.display_name || 'Usuario',
+      otpCode,
+    );
+
+    return {
+      success: true,
+      message: 'Si el correo electrónico se encuentra registrado, recibirás un código de verificación en breve.',
+    };
+  }
+
+  /**
+   * Restablecer contraseña con código OTP
+   */
+  async resetPassword(email: string, otpCode: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const emailNorm = email.toLowerCase().trim();
+    const savedOtp = await this.redisService.get(`password_reset_otp:${emailNorm}`);
+
+    if (!savedOtp || savedOtp !== otpCode.trim()) {
+      throw new BadRequestException('El código de verificación es inválido o ha expirado.');
+    }
+
+    const user = await this.userRepo.findOne({ where: { email: emailNorm } });
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado.');
+    }
+
+    const saltRounds = 12;
+    user.password_hash = await bcrypt.hash(newPassword, saltRounds);
+    await this.userRepo.save(user);
+
+    // Eliminar OTP usado y revocar sesiones previas por seguridad
+    await this.redisService.del(`password_reset_otp:${emailNorm}`);
+    await this.revokeAllUserSessions(user.id);
+
+    return {
+      success: true,
+      message: 'Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.',
+    };
   }
 
   async getMe(userId: string): Promise<User> {
