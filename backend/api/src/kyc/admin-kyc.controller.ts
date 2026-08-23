@@ -17,6 +17,14 @@ import { PaginationDto } from './dto/pagination.dto';
 export class AdminKycController {
   constructor(private readonly kycService: KycService) {}
 
+  @Get('list')
+  async getList(
+    @Query('status') status: string,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.kycService.getVerifications(status, paginationDto);
+  }
+
   @Get('pending')
   async getPending(@Query() paginationDto: PaginationDto) {
     return this.kycService.getPendingVerifications(paginationDto);

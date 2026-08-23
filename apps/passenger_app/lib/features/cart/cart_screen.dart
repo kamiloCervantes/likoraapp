@@ -1,54 +1,101 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_routes.dart';
+import '../../core/services/api_client.dart';
 import '../../data/app_state.dart';
 
-class CartScreen extends StatelessWidget {
+class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
 
-  void _handleCheckout(BuildContext context, AppState appState) {
-    // Verificación estricta de KYC antes de permitir Checkout (+18)
-    final bool isKycVerified = false; // Mock validation
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
 
-    if (!isKycVerified) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
-            children: [
-              Icon(Icons.shield_outlined, color: AppColors.warning, size: 28),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text('Verificación +18 Requerida', style: TextStyle(color: Colors.white, fontSize: 18)),
-              ),
-            ],
-          ),
-          content: const Text(
-            'Por regulación legal, debes validar tu documento de identidad y mayoría de edad para completar pedidos de bebidas alcohólicas.',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.4),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar', style: TextStyle(color: AppColors.textSecondary)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-              onPressed: () {
-                Navigator.pop(ctx);
-                Navigator.pushNamed(context, AppRoutes.kycIntro);
-              },
-              child: const Text('Verificar Ahora', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      );
+class _CartScreenState extends State<CartScreen> {
+  bool _isCheckingKyc = false;
+
+  Future<void> _handleCheckout(BuildContext context, AppState appState) async {
+    setState(() => _isCheckingKyc = true);
+
+    debugPrint('===============================================================');
+    debugPrint('🛒 [CHECKOUT CLICK] Iniciando validación KYC para proceder al pago...');
+    debugPrint('🔑 [AUTH TOKEN ACTUAL]: ${ApiClient.accessToken != null ? "Presente (${ApiClient.accessToken!.substring(0, 15)}...)" : "⚠️ NULL (No autenticado)"}');
+
+    bool isKycVerified = false;
+    Map<String, dynamic>? kycData;
+
+    try {
+      final res = await ApiClient.get('/kyc/status');
+      debugPrint('📡 [API /kyc/status CODE]: ${res.statusCode}');
+      debugPrint('📦 [API /kyc/status BODY]: ${res.body}');
+
+      if (res.statusCode == 200) {
+        kycData = jsonDecode(res.body);
+        final canPurchase = kycData?['can_purchase_alcohol'] == true;
+        final kycStatus = kycData?['kyc_status'];
+        final expiresAt = kycData?['last_verification']?['expires_at'];
+
+        isKycVerified = canPurchase || kycStatus == 'VERIFIED';
+
+        debugPrint('🧐 [PARSED KYC STATUS]: $kycStatus');
+        debugPrint('🔞 [CAN PURCHASE ALCOHOL]: $canPurchase');
+        debugPrint('⏱️ [EXPIRATION DATE]: $expiresAt');
+        debugPrint('🎯 [DECISIÓN FINAL]: ${isKycVerified ? "✅ VERIFICACIÓN VIGENTE -> IR A CHECKOUT" : "❌ NO VERIFICADO/EXPIRADO -> MOSTRAR POPUP"}');
+      } else {
+        debugPrint('⚠️ [API ERROR]: Código de respuesta inesperado ${res.statusCode}');
+      }
+    } catch (e, stack) {
+      debugPrint('❌ [EXCEPCIÓN EN CHECKOUT KYC]: $e');
+      debugPrint('📍 $stack');
+    }
+
+    debugPrint('===============================================================');
+
+    if (!mounted) return;
+    setState(() => _isCheckingKyc = false);
+
+    if (isKycVerified) {
+      // ✅ Usuario verificado y vigente: Navegación DIRECTA al checkout sin mostrar ningún popup
+      Navigator.pushNamed(context, AppRoutes.checkout);
       return;
     }
 
-    Navigator.pushNamed(context, AppRoutes.checkout);
+    // ❌ Usuario NO verificado o expirado: Mostrar popup para validar
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.shield_outlined, color: AppColors.warning, size: 28),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text('Verificación +18 Requerida', style: TextStyle(color: Colors.white, fontSize: 18)),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Por regulación legal, debes validar tu documento de identidad y mayoría de edad para completar pedidos de bebidas alcohólicas.',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pushNamed(context, AppRoutes.kycIntro);
+            },
+            child: const Text('Verificar Ahora', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -143,8 +190,14 @@ class CartScreen extends StatelessWidget {
                             backgroundColor: AppColors.primary,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
-                          onPressed: () => _handleCheckout(context, appState),
-                          child: const Text('Proceder al Pago', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                          onPressed: _isCheckingKyc ? null : () => _handleCheckout(context, appState),
+                          child: _isCheckingKyc
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                                )
+                              : const Text('Proceder al Pago', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                         ),
                       ),
                     ],

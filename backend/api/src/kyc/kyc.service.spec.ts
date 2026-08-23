@@ -55,7 +55,8 @@ describe('KycService (Likora Identity & Age Compliance)', () => {
       transaction: jest.fn().mockImplementation(async (cb) => {
         return cb({
           create: jest.fn().mockImplementation((entity, d) => d),
-          save: jest.fn().mockImplementation((d) => Promise.resolve({ ...d, id: 'saved-id' })),
+          save: jest.fn().mockImplementation((entity, d) => Promise.resolve(d ? { ...d, id: 'saved-id' } : { ...entity, id: 'saved-id' })),
+          update: jest.fn().mockResolvedValue({}),
         });
       }),
     };

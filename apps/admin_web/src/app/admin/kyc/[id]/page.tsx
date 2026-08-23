@@ -2,7 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, XCircle, ShieldCheck, ZoomIn, RotateCw, RefreshCw } from 'lucide-react';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  XCircle,
+  ShieldCheck,
+  ZoomIn,
+  RotateCw,
+  RefreshCw,
+  Clock,
+  AlertTriangle,
+} from 'lucide-react';
 import Link from 'next/link';
 
 export default function KycDetailPage() {
@@ -13,6 +23,7 @@ export default function KycDetailPage() {
   const [detail, setDetail] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('BLURRY_IMAGE');
   const [customNotes, setCustomNotes] = useState('');
@@ -48,13 +59,15 @@ export default function KycDetailPage() {
       });
 
       if (res.ok) {
-        alert('✅ ¡Solicitud KYC Aprobada exitosamente! El usuario ahora tiene estado VERIFIED.');
+        const data = await res.json();
+        alert(data.message || '✅ ¡Solicitud KYC Aprobada con vigencia de 1 hora!');
         router.push('/admin/kyc');
       } else {
-        alert('Error al aprobar solicitud');
+        const err = await res.json();
+        alert(`Error: ${err.message || 'No se pudo aprobar'}`);
       }
-    } catch (e) {
-      alert(`Error de red: ${e}`);
+    } catch (e: any) {
+      alert(`Error de red: ${e.message || e}`);
     } finally {
       setIsApproving(false);
     }
@@ -62,6 +75,7 @@ export default function KycDetailPage() {
 
   const handleReject = async () => {
     try {
+      setIsRejecting(true);
       const res = await fetch(`http://localhost:3000/api/v1/admin/kyc/${id}/reject`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -72,14 +86,18 @@ export default function KycDetailPage() {
       });
 
       if (res.ok) {
-        alert(`❌ Solicitud Rechazada. Motivo: ${rejectReason}`);
+        const data = await res.json();
+        alert(data.message || '❌ Solicitud marcada como RECHAZADA');
         setShowRejectModal(false);
         router.push('/admin/kyc');
       } else {
-        alert('Error al rechazar solicitud');
+        const err = await res.json();
+        alert(`Error al rechazar: ${err.message || 'Error desconocido'}`);
       }
-    } catch (e) {
-      alert(`Error: ${e}`);
+    } catch (e: any) {
+      alert(`Error de red: ${e.message || e}`);
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -101,6 +119,10 @@ export default function KycDetailPage() {
     );
   }
 
+  const isVerified = detail.status === 'VERIFIED';
+  const isRejected = detail.status === 'REJECTED';
+  const isPending = detail.status === 'PENDING_REVIEW';
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto p-6 bg-slate-950 min-h-screen text-slate-100">
       {/* Top bar */}
@@ -112,21 +134,53 @@ export default function KycDetailPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowRejectModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/30 text-sm font-semibold transition"
+            disabled={isRejecting}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition border ${
+              isRejected
+                ? 'bg-rose-600/20 text-rose-300 border-rose-500/40'
+                : 'bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border-rose-500/30'
+            }`}
           >
             <XCircle size={16} />
-            Rechazar
+            {isRejected ? 'Actualizar Rechazo' : 'Rechazar'}
           </button>
+
           <button
             onClick={handleApprove}
             disabled={isApproving}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-600/20 transition"
+            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-white text-sm font-bold shadow-lg transition ${
+              isVerified
+                ? 'bg-emerald-700 hover:bg-emerald-600 shadow-emerald-700/20'
+                : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
+            }`}
           >
             <CheckCircle2 size={16} />
-            {isApproving ? 'Aprobando...' : 'Aprobar Documento'}
+            {isApproving ? 'Aprobando...' : isVerified ? 'Renovar Aprobación (1h)' : 'Aprobar Documento (1h)'}
           </button>
         </div>
       </div>
+
+      {/* Status banner */}
+      {isVerified && (
+        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2 font-semibold">
+            <CheckCircle2 size={18} />
+            Esta verificación se encuentra APROBADA (Vigencia de 1 hora activa).
+          </div>
+          {detail.expires_at && (
+            <div className="text-xs font-mono text-emerald-400">
+              Vence a las: {new Date(detail.expires_at).toLocaleTimeString()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isRejected && (
+        <div className="p-4 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center gap-2 text-sm font-semibold">
+          <XCircle size={18} />
+          Esta verificación se encuentra RECHAZADA. Motivo: {detail.rejection_reason || 'No especificado'}
+        </div>
+      )}
 
       {/* User & Document Metadata Card */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800">
@@ -260,9 +314,10 @@ export default function KycDetailPage() {
               </button>
               <button
                 onClick={handleReject}
+                disabled={isRejecting}
                 className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-md"
               >
-                Confirmar Rechazo
+                {isRejecting ? 'Rechazando...' : 'Confirmar Rechazo'}
               </button>
             </div>
           </div>
