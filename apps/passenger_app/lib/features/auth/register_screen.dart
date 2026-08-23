@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_routes.dart';
 import '../../core/utils/validators.dart';
+import '../../data/app_state.dart';
+import '../../data/models/user_model.dart';
 import 'auth_repository.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -23,8 +25,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   DateTime? _selectedBirthDate;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
-  Future<void> _handleRegister() async {
+  @override
+  void dispose() {
+    _displayNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _dobController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleRegister(AppState appState) async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
@@ -46,36 +59,67 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (result['success']) {
+    if (result['success'] == true) {
+      final userJson = result['user'];
+      if (userJson != null) {
+        appState.currentUser = UserModel(
+          id: userJson['id'],
+          name: userJson['display_name'] ?? _displayNameController.text,
+          email: userJson['email'] ?? _emailController.text,
+          role: UserRole.client,
+        );
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ ¡Cuenta creada exitosamente en Likora!'),
+        SnackBar(
+          content: Text('🎉 ¡Cuenta creada con éxito! Bienvenido, ${appState.currentUser?.name}'),
           backgroundColor: AppColors.success,
         ),
       );
+
       Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
     } else {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: const Row(
-            children: [
-              Icon(Icons.error_outline, color: AppColors.error),
-              SizedBox(width: 8),
-              Text('Error en Registro', style: TextStyle(color: Colors.white)),
-            ],
-          ),
-          content: Text(
-            result['error'] ?? 'No se pudo crear la cuenta',
-            style: const TextStyle(color: AppColors.textSecondary),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Aceptar', style: TextStyle(color: AppColors.primaryLight)),
-            ),
-          ],
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ ${result['error']}'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleGoogleRegister(AppState appState) async {
+    setState(() => _isGoogleLoading = true);
+
+    final result = await _authRepo.loginWithGoogle();
+
+    if (!mounted) return;
+    setState(() => _isGoogleLoading = false);
+
+    if (result['success'] == true) {
+      final userJson = result['user'];
+      if (userJson != null) {
+        appState.currentUser = UserModel(
+          id: userJson['id'],
+          name: userJson['display_name'] ?? 'Usuario Google',
+          email: userJson['email'] ?? '',
+          role: UserRole.client,
+        );
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('🎉 ¡Registro con Google exitoso! Bienvenido, ${appState.currentUser?.name}'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('⚠️ ${result['error']}'),
+          backgroundColor: AppColors.error,
         ),
       );
     }
@@ -83,9 +127,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = AppStateProvider.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.pop(context),
@@ -100,9 +148,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: [AppColors.accent, AppColors.primary],
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
                 ),
               ),
-              child: const Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 20),
+              child: const Icon(
+                Icons.local_fire_department_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 8),
             const Text('Likora', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
@@ -210,7 +264,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Sign Up Button
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _handleRegister,
+                  onPressed: _isLoading ? null : () => _handleRegister(appState),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
@@ -238,17 +292,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Social Grid
                 Row(
                   children: [
-                    Expanded(child: _buildSocialButton('Google', Icons.g_mobiledata_rounded)),
+                    Expanded(
+                      child: _isGoogleLoading
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: AppColors.socialButton,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                ),
+                              ),
+                            )
+                          : _buildSocialButton(
+                              'Google',
+                              Icons.g_mobiledata_rounded,
+                              () => _handleGoogleRegister(appState),
+                            ),
+                    ),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildSocialButton('Facebook', Icons.facebook)),
+                    Expanded(
+                      child: _buildSocialButton(
+                        'Facebook',
+                        Icons.facebook,
+                        () => Navigator.pushReplacementNamed(context, AppRoutes.mainNav),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(child: _buildSocialButton('Microsoft', Icons.window_rounded)),
+                    Expanded(
+                      child: _buildSocialButton(
+                        'Microsoft',
+                        Icons.window_rounded,
+                        () => Navigator.pushReplacementNamed(context, AppRoutes.mainNav),
+                      ),
+                    ),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildSocialButton('Apple', Icons.apple)),
+                    Expanded(
+                      child: _buildSocialButton(
+                        'Apple',
+                        Icons.apple,
+                        () => Navigator.pushReplacementNamed(context, AppRoutes.mainNav),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 32),
@@ -283,9 +376,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildSocialButton(String label, IconData icon) {
+  Widget _buildSocialButton(String label, IconData icon, VoidCallback onTap) {
     return InkWell(
-      onTap: () => Navigator.pushReplacementNamed(context, AppRoutes.mainNav),
+      onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
