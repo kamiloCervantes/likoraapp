@@ -12,6 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   http: ^1.2.0
   flutter_dotenv: ^5.2.1
+  image_picker: ^1.1.2
   core_models:
     path: ../../packages/core_models
   shared_ui:

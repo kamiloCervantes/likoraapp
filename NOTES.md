@@ -120,5 +120,8 @@ Fase 4	En tiempo real con WebSockets	El cliente móvil recibe kyc:status_updated
 💡 ¿Cuándo pasar a la VPS?
 Una vez que hayas verificado este circuito completo en local, el paso a la VPS será simplemente clonar, configurar tu archivo .env de producción y levantar con docker compose --profile full up -d.
 
-¿Deseas que probemos o ejecutemos algún comando específico juntos?
+Lo siguiente permite hacer puente con la api de Wsl desde el telefono
+
+adb reverse tcp:3000 tcp:3000
+adb reverse tcp:3001 tcp:3001
 

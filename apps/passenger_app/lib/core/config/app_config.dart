@@ -10,11 +10,11 @@ class AppConfig {
   }
 
   static String get apiBaseUrl {
-    return dotenv.env['API_BASE_URL'] ?? 'http://192.168.1.68:3000/api/v1';
+    return dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000/api/v1';
   }
 
   static String get socketUrl {
-    return dotenv.env['SOCKET_SERVER_URL'] ?? 'http://192.168.1.68:3001';
+    return dotenv.env['SOCKET_SERVER_URL'] ?? 'http://localhost:3001';
   }
 
   static String get environment {
