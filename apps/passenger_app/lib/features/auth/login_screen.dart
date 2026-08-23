@@ -4,6 +4,7 @@ import '../../core/constants/app_routes.dart';
 import '../../core/utils/validators.dart';
 import '../../data/app_state.dart';
 import '../../data/models/user_model.dart';
+import 'auth_repository.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,13 +15,38 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'sofia.ramirez@email.com');
-  final _passwordController = TextEditingController(text: '123456');
+  final _authRepo = AuthRepository();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
-  void _handleLogin(AppState appState) {
-    if (_formKey.currentState?.validate() ?? false) {
-      // Update local state and navigate
+  bool _isLoading = false;
+
+  Future<void> _handleLogin(AppState appState) async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    debugPrint('📱 [LoginScreen] Botón Login presionado para: ${_emailController.text}');
+
+    final result = await _authRepo.loginWithEmail(
+      _emailController.text,
+      _passwordController.text,
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
       Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ ${result['error']}'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
 
@@ -33,11 +59,11 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 30),
 
@@ -84,6 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 28),
 
@@ -95,6 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
                     hintText: 'Correo Electrónico',
+                    prefixIcon: Icon(Icons.email_outlined, color: AppColors.textMuted),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -107,19 +135,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
                     hintText: 'Contraseña',
+                    prefixIcon: Icon(Icons.lock_outline, color: AppColors.textMuted),
                   ),
                 ),
                 const SizedBox(height: 24),
 
                 // Login Button
                 ElevatedButton(
-                  onPressed: () => _handleLogin(appState),
+                  onPressed: _isLoading ? null : () => _handleLogin(appState),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isStoreAdmin ? AppColors.accent : AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: Text(
-                    isStoreAdmin ? 'Iniciar Sesión como Admin' : 'Iniciar Sesión',
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        )
+                      : Text(
+                          isStoreAdmin ? 'Iniciar Sesión como Admin' : 'Iniciar Sesión',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                 ),
                 const SizedBox(height: 16),
 
@@ -144,6 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
 
@@ -165,41 +203,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Role Switcher Simulation Chip
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Simular Rol: ',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                      ),
-                      ChoiceChip(
-                        label: const Text('Cliente'),
-                        selected: !isStoreAdmin,
-                        onSelected: (val) {
-                          if (val) appState.setUserRole(UserRole.client);
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      ChoiceChip(
-                        label: const Text('Admin Tienda'),
-                        selected: isStoreAdmin,
-                        onSelected: (val) {
-                          if (val) appState.setUserRole(UserRole.storeAdmin);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
                 // Register Navigation Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -213,7 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: const Text(
                         'Crear Cuenta',
                         style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: AppColors.primaryLight,
                           fontWeight: FontWeight.bold,
                           decoration: TextDecoration.underline,
                         ),
@@ -233,7 +236,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildSocialButton(String label, IconData icon) {
     return InkWell(
       onTap: () {
-        // Mock social auth trigger
         Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
       },
       borderRadius: BorderRadius.circular(12),

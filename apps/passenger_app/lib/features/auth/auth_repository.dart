@@ -1,12 +1,14 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import '../../core/services/api_client.dart';
 import 'package:core_models/core_models.dart';
 
 class AuthRepository {
   Future<Map<String, dynamic>> loginWithEmail(String email, String password) async {
+    debugPrint('🚀 [AuthRepository] Iniciando login para: $email');
     try {
       final res = await ApiClient.post('/auth/login', body: {
-        'email': email,
+        'email': email.trim(),
         'password': password,
         'app_source': 'CONSUMER_APP',
       });
@@ -17,24 +19,17 @@ class AuthRepository {
           accessToken: data['access_token'],
           refreshToken: data['refresh_token'],
         );
+        debugPrint('🎉 [AuthRepository] Login exitoso para el usuario: ${data['user']?['email']}');
         return {'success': true, 'user': User.fromJson(data['user'])};
       } else {
         final err = jsonDecode(res.body);
-        return {'success': false, 'error': err['message'] ?? 'Error de autenticación'};
+        final msg = err['message'] is List ? (err['message'] as List).join(', ') : err['message'];
+        debugPrint('⚠️ [AuthRepository] Error en login: $msg');
+        return {'success': false, 'error': msg ?? 'Credenciales incorrectas'};
       }
     } catch (e) {
-      // Mock fallback for offline demonstration
-      ApiClient.setTokens(accessToken: 'mock_jwt_token', refreshToken: 'mock_refresh_token');
-      return {
-        'success': true,
-        'user': User(
-          id: 'usr-1001',
-          email: email,
-          displayName: 'Sofia Ramirez',
-          role: UserRole.consumer,
-          kycStatus: KycStatus.notStarted,
-        ),
-      };
+      debugPrint('❌ [AuthRepository] Excepción de conexión en login: $e');
+      return {'success': false, 'error': 'No se pudo conectar con el servidor ($e)'};
     }
   }
 
@@ -45,15 +40,18 @@ class AuthRepository {
     String? phoneNumber,
     String? birthDate,
   }) async {
+    debugPrint('🚀 [AuthRepository] Iniciando registro de usuario: $email ($displayName)');
     try {
-      final res = await ApiClient.post('/auth/register', body: {
-        'email': email,
+      final body = {
+        'email': email.trim(),
         'password': password,
-        'display_name': displayName,
-        'phone_number': phoneNumber,
-        'birth_date': birthDate,
+        'display_name': displayName.trim(),
         'app_source': 'CONSUMER_APP',
-      });
+      };
+      if (phoneNumber != null && phoneNumber.isNotEmpty) body['phone_number'] = phoneNumber;
+      if (birthDate != null && birthDate.isNotEmpty) body['birth_date'] = birthDate;
+
+      final res = await ApiClient.post('/auth/register', body: body);
 
       if (res.statusCode == 201) {
         final data = jsonDecode(res.body);
@@ -61,38 +59,17 @@ class AuthRepository {
           accessToken: data['access_token'],
           refreshToken: data['refresh_token'],
         );
+        debugPrint('🎉 [AuthRepository] Registro exitoso! Usuario creado en DB: ${data['user']?['id']}');
         return {'success': true, 'user': User.fromJson(data['user'])};
       } else {
         final err = jsonDecode(res.body);
-        return {'success': false, 'error': err['message'] ?? 'Error al registrarse'};
+        final msg = err['message'] is List ? (err['message'] as List).join(', ') : err['message'];
+        debugPrint('⚠️ [AuthRepository] Error en registro de la API: $msg');
+        return {'success': false, 'error': msg ?? 'Error al registrarse'};
       }
     } catch (e) {
-      ApiClient.setTokens(accessToken: 'mock_jwt_token', refreshToken: 'mock_refresh_token');
-      return {
-        'success': true,
-        'user': User(
-          id: 'usr-1001',
-          email: email,
-          displayName: displayName,
-          role: UserRole.consumer,
-          kycStatus: KycStatus.notStarted,
-        ),
-      };
+      debugPrint('❌ [AuthRepository] Excepción de conexión en registro: $e');
+      return {'success': false, 'error': 'Error de conexión con la API: $e'};
     }
-  }
-
-  Future<Map<String, dynamic>> socialLogin(String provider) async {
-    // Simula flujo OAuth con Google / Apple / Facebook
-    ApiClient.setTokens(accessToken: 'mock_social_jwt', refreshToken: 'mock_social_ref');
-    return {
-      'success': true,
-      'user': User(
-        id: 'usr-soc-1',
-        email: 'social.user@gmail.com',
-        displayName: 'Usuario $provider',
-        role: UserRole.consumer,
-        kycStatus: KycStatus.notStarted,
-      ),
-    };
   }
 }

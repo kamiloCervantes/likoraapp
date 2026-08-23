@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_routes.dart';
 import '../../core/utils/validators.dart';
-import '../../data/app_state.dart';
+import 'auth_repository.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -13,21 +13,71 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
+  final _authRepo = AuthRepository();
+
+  final _displayNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _dobController = TextEditingController();
 
-  void _handleRegister() {
-    if (_formKey.currentState?.validate() ?? false) {
+  DateTime? _selectedBirthDate;
+  bool _isLoading = false;
+
+  Future<void> _handleRegister() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    debugPrint('📱 [RegisterScreen] Botón Sign Up presionado!');
+    debugPrint('📝 Datos: Email=${_emailController.text}, Nombre=${_displayNameController.text}, Fecha=${_selectedBirthDate?.toIso8601String().split('T').first}');
+
+    final birthDateIso = _selectedBirthDate?.toIso8601String().split('T').first;
+
+    final result = await _authRepo.registerWithEmail(
+      email: _emailController.text,
+      password: _passwordController.text,
+      displayName: _displayNameController.text,
+      birthDate: birthDateIso,
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Cuenta registrada con éxito. ¡Bienvenido a Likora!'),
+          content: Text('✅ ¡Cuenta creada exitosamente en Likora!'),
           backgroundColor: AppColors.success,
         ),
       );
       Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
+    } else {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Row(
+            children: [
+              Icon(Icons.error_outline, color: AppColors.error),
+              SizedBox(width: 8),
+              Text('Error en Registro', style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: Text(
+            result['error'] ?? 'No se pudo crear la cuenta',
+            style: const TextStyle(color: AppColors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Aceptar', style: TextStyle(color: AppColors.primaryLight)),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -65,17 +115,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 10),
 
-                // Username Field
+                // Name Field
                 TextFormField(
-                  controller: _usernameController,
-                  validator: (val) => Validators.requiredField(val, 'Nombre de usuario'),
+                  controller: _displayNameController,
+                  validator: (val) => Validators.requiredField(val, 'Nombre completo'),
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
-                    hintText: 'Username',
+                    hintText: 'Nombre y Apellidos',
+                    prefixIcon: Icon(Icons.person_outline, color: AppColors.textMuted),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -87,7 +138,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   style: const TextStyle(color: Colors.white),
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    hintText: 'Email',
+                    hintText: 'Correo Electrónico',
+                    prefixIcon: Icon(Icons.email_outlined, color: AppColors.textMuted),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -99,7 +151,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   obscureText: true,
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
-                    hintText: 'Password',
+                    hintText: 'Contraseña (mínimo 8 caracteres)',
+                    prefixIcon: Icon(Icons.lock_outline, color: AppColors.textMuted),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -111,7 +164,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   obscureText: true,
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
-                    hintText: 'Confirm Password',
+                    hintText: 'Confirmar Contraseña',
+                    prefixIcon: Icon(Icons.lock_reset_outlined, color: AppColors.textMuted),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -123,8 +177,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   validator: (val) => Validators.requiredField(val, 'Fecha de nacimiento'),
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
-                    hintText: 'Date of Birth',
-                    suffixIcon: Icon(Icons.calendar_today_rounded, color: AppColors.textMuted),
+                    hintText: 'Fecha de Nacimiento (DD/MM/AAAA)',
+                    prefixIcon: Icon(Icons.calendar_today_rounded, color: AppColors.textMuted),
                   ),
                   onTap: () async {
                     final date = await showDatePicker(
@@ -134,7 +188,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       lastDate: DateTime.now(),
                     );
                     if (date != null) {
-                      _dobController.text = "${date.day}/${date.month}/${date.year}";
+                      setState(() {
+                        _selectedBirthDate = date;
+                        _dobController.text = "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
+                      });
                     }
                   },
                 ),
@@ -142,7 +199,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Age Legal Warning Notice
                 const Text(
-                  'You must be of legal drinking age to register.',
+                  'Debes ser mayor de 18 años para comprar bebidas alcohólicas.',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
@@ -153,18 +210,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Sign Up Button
                 ElevatedButton(
-                  onPressed: _handleRegister,
-                  child: const Text('Sign Up'),
+                  onPressed: _isLoading ? null : _handleRegister,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        )
+                      : const Text('Registrarme', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 24),
 
                 // Social Label
                 const Text(
-                  'Or sign up with',
+                  'O registrarse con',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
                   ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
 
@@ -191,15 +258,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
-                      'Already have an account? ',
+                      '¿Ya tienes una cuenta? ',
                       style: TextStyle(color: AppColors.textMuted),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
                       child: const Text(
-                        'Sign In',
+                        'Iniciar Sesión',
                         style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: AppColors.primaryLight,
                           fontWeight: FontWeight.bold,
                           decoration: TextDecoration.underline,
                         ),
