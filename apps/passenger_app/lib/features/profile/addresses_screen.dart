@@ -20,95 +20,152 @@ class AddressesScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(20),
-        itemCount: addresses.length,
-        itemBuilder: (context, index) {
-          final addr = addresses[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.cardBg,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: addr.isDefault ? AppColors.primary : AppColors.border,
-                width: addr.isDefault ? 1.5 : 1,
+      body: addresses.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.location_off_rounded, size: 64, color: AppColors.textSecondary),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No tienes direcciones guardadas',
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Agrega una dirección para recibir tus pedidos.',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  ),
+                ],
               ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Radio<bool>(
-                  value: true,
-                  groupValue: addr.isDefault,
-                  activeColor: AppColors.primary,
-                  onChanged: (val) {
-                    appState.setDefaultAddress(addr.id);
-                  },
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: addresses.length,
+              itemBuilder: (context, index) {
+                final addr = addresses[index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: addr.isDefault ? AppColors.primary : AppColors.border,
+                      width: addr.isDefault ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            addr.title,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                      Radio<bool>(
+                        value: true,
+                        groupValue: addr.isDefault,
+                        activeColor: AppColors.primary,
+                        onChanged: (val) {
+                          appState.setDefaultAddress(addr.id);
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  addr.title,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                if (addr.isDefault) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Text(
+                                      'Activa',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
-                          ),
-                          if (addr.isDefault) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'Predeterminada',
-                                style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold),
-                              ),
+                            const SizedBox(height: 6),
+                            Text(
+                              addr.fullAddress,
+                              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                             ),
+                            if (addr.details.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Ref: ',
+                                style: const TextStyle(fontSize: 12, color: Colors.white70),
+                              ),
+                            ],
+                            if (addr.latitude != null && addr.longitude != null) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(Icons.my_location_rounded, size: 12, color: AppColors.primary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    ', ',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontFamily: 'monospace',
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        addr.fullAddress,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                      Text(
-                        '${addr.city} • ${addr.details}',
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.redAccent),
+                        onPressed: () {
+                          appState.removeAddress(addr.id);
+                        },
                       ),
                     ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add_location_alt_rounded, color: Colors.white),
-        label: const Text('Agregar Dirección', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        onPressed: () => _showAddAddressModal(context, appState),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.cardBg,
+          border: Border(top: BorderSide(color: AppColors.border)),
+        ),
+        child: ElevatedButton.icon(
+          onPressed: () => _showAddAddressModal(context, appState),
+          icon: const Icon(Icons.add_location_alt_rounded),
+          label: const Text('Agregar Nueva Dirección'),
+        ),
       ),
     );
   }
 
   void _showAddAddressModal(BuildContext context, AppState appState) {
-    final titleCtrl = TextEditingController();
+    final titleCtrl = TextEditingController(text: 'Casa');
     final addressCtrl = TextEditingController();
-    final cityCtrl = TextEditingController(text: 'Ciudad de México');
+    final cityCtrl = TextEditingController(text: 'Caracas');
     final detailsCtrl = TextEditingController();
+    final latCtrl = TextEditingController(text: '10.4950');
+    final lngCtrl = TextEditingController(text: '-66.8500');
 
     showModalBottomSheet(
       context: context,
@@ -118,50 +175,94 @@ class AddressesScreen extends StatelessWidget {
       builder: (context) {
         return Padding(
           padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Nueva Dirección de Envío',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: titleCtrl,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Etiqueta (Ej: Trabajo, Casa)'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: addressCtrl,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Dirección Completa'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: detailsCtrl,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Detalles (Apto, Piso, Timbre)'),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  if (titleCtrl.text.isNotEmpty && addressCtrl.text.isNotEmpty) {
-                    final newAddr = AddressModel(
-                      id: 'addr-${DateTime.now().millisecondsSinceEpoch}',
-                      title: titleCtrl.text.trim(),
-                      fullAddress: addressCtrl.text.trim(),
-                      city: cityCtrl.text.trim(),
-                      details: detailsCtrl.text.trim(),
-                    );
-                    appState.addAddress(newAddr);
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text('Guardar Dirección'),
-              ),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Nueva Dirección de Entrega',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: titleCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Alias (Ej: Casa, Trabajo)'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: addressCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Dirección Completa (Calle, Edif)'),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: cityCtrl,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Ciudad'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: detailsCtrl,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Referencia / Apto'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: latCtrl,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Latitud'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: lngCtrl,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Longitud'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (titleCtrl.text.isNotEmpty && addressCtrl.text.isNotEmpty) {
+                        final newAddr = AddressModel(
+                          id: 'addr-',
+                          title: titleCtrl.text.trim(),
+                          fullAddress: addressCtrl.text.trim(),
+                          city: cityCtrl.text.trim(),
+                          details: detailsCtrl.text.trim(),
+                          latitude: double.tryParse(latCtrl.text),
+                          longitude: double.tryParse(lngCtrl.text),
+                          isDefault: appState.addresses.isEmpty,
+                        );
+                        appState.addAddress(newAddr);
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: const Text('Guardar y Seleccionar'),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },

@@ -20,48 +20,30 @@ class _CartScreenState extends State<CartScreen> {
 
     debugPrint('===============================================================');
     debugPrint('🛒 [CHECKOUT CLICK] Iniciando validación KYC para proceder al pago...');
-    debugPrint('🔑 [AUTH TOKEN ACTUAL]: ${ApiClient.accessToken != null ? "Presente (${ApiClient.accessToken!.substring(0, 15)}...)" : "⚠️ NULL (No autenticado)"}');
 
     bool isKycVerified = false;
     Map<String, dynamic>? kycData;
 
     try {
       final res = await ApiClient.get('/kyc/status');
-      debugPrint('📡 [API /kyc/status CODE]: ${res.statusCode}');
-      debugPrint('📦 [API /kyc/status BODY]: ${res.body}');
-
       if (res.statusCode == 200) {
         kycData = jsonDecode(res.body);
         final canPurchase = kycData?['can_purchase_alcohol'] == true;
         final kycStatus = kycData?['kyc_status'];
-        final expiresAt = kycData?['last_verification']?['expires_at'];
-
         isKycVerified = canPurchase || kycStatus == 'VERIFIED';
-
-        debugPrint('🧐 [PARSED KYC STATUS]: $kycStatus');
-        debugPrint('🔞 [CAN PURCHASE ALCOHOL]: $canPurchase');
-        debugPrint('⏱️ [EXPIRATION DATE]: $expiresAt');
-        debugPrint('🎯 [DECISIÓN FINAL]: ${isKycVerified ? "✅ VERIFICACIÓN VIGENTE -> IR A CHECKOUT" : "❌ NO VERIFICADO/EXPIRADO -> MOSTRAR POPUP"}');
-      } else {
-        debugPrint('⚠️ [API ERROR]: Código de respuesta inesperado ${res.statusCode}');
       }
-    } catch (e, stack) {
-      debugPrint('❌ [EXCEPCIÓN EN CHECKOUT KYC]: $e');
-      debugPrint('📍 $stack');
+    } catch (e) {
+      debugPrint('⚠️ Excepción comprobando KYC: ');
     }
-
-    debugPrint('===============================================================');
 
     if (!mounted) return;
     setState(() => _isCheckingKyc = false);
 
     if (isKycVerified) {
-      // ✅ Usuario verificado y vigente: Navegación DIRECTA al checkout sin mostrar ningún popup
       Navigator.pushNamed(context, AppRoutes.checkout);
       return;
     }
 
-    // ❌ Usuario NO verificado o expirado: Mostrar popup para validar
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -109,6 +91,14 @@ class _CartScreenState extends State<CartScreen> {
         title: const Text('Mi Carrito'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          if (cart.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_rounded, color: AppColors.textSecondary),
+              tooltip: 'Vaciar Carrito',
+              onPressed: () => appState.clearCart(),
+            ),
+        ],
       ),
       body: cart.isEmpty
           ? Center(
@@ -118,6 +108,8 @@ class _CartScreenState extends State<CartScreen> {
                   Icon(Icons.shopping_bag_outlined, size: 80, color: AppColors.textSecondary.withOpacity(0.5)),
                   const SizedBox(height: 16),
                   const Text('Tu carrito está vacío', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text('Explora el catálogo y añade tus licores favoritos', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                 ],
               ),
             )
@@ -139,26 +131,81 @@ class _CartScreenState extends State<CartScreen> {
                         decoration: BoxDecoration(
                           color: AppColors.card,
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
                         ),
                         child: Row(
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.network(imgUrl, width: 60, height: 60, fit: BoxFit.cover),
+                              child: Image.network(imgUrl, width: 64, height: 64, fit: BoxFit.cover),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(item.product.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                  Text('\$${item.product.effectivePrice.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.primaryHover)),
+                                  Text(
+                                    item.product.title,
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '\{item.product.effectivePrice.toStringAsFixed(2)} c/u',
+                                    style: const TextStyle(color: AppColors.primaryHover, fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      InkWell(
+                                        onTap: () => appState.updateCartQuantity(item.product.id, item.quantity - 1),
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.surface,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: const Icon(Icons.remove, size: 16, color: Colors.white),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                                        child: Text(
+                                          '',
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                        ),
+                                      ),
+                                      InkWell(
+                                        onTap: () => appState.updateCartQuantity(item.product.id, item.quantity + 1),
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.surface,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: const Icon(Icons.add, size: 16, color: Colors.white),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                              onPressed: () => appState.removeFromCart(item.product.id),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
+                                  onPressed: () => appState.removeFromCart(item.product.id),
+                                ),
+                                Text(
+                                  '\{item.totalPrice.toStringAsFixed(2)}',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -168,17 +215,46 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.surface,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    border: Border(top: BorderSide(color: AppColors.border)),
                   ),
                   child: Column(
                     children: [
+                      // Subtotal
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Total:', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                          Text('\$${appState.cartTotal.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.primaryHover, fontSize: 20, fontWeight: FontWeight.bold)),
+                          Text('Subtotal', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                          Text('\{appState.cartSubtotal.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      // Tax (16%)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('IVA (16%)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                          Text('\{appState.cartTax.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      // Delivery fee (.50)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Costo de Envío', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                          Text('\{appState.cartShippingFee.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                        ],
+                      ),
+                      const Divider(color: AppColors.border, height: 20),
+                      // Total
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Total a Pagar:', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+                          Text('\{appState.cartTotal.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.primaryHover, fontSize: 20, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 16),

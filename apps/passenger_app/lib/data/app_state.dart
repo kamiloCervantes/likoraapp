@@ -8,9 +8,16 @@ import 'models/cart_item_model.dart';
 import 'models/address_model.dart';
 import 'models/chat_message_model.dart';
 import 'mocks/mock_repositories.dart';
+import '../features/profile/address_repository.dart';
+import '../features/categories/catalog_repository.dart';
+import '../features/cart/cart_repository.dart';
 
 class AppState extends ChangeNotifier {
   bool isLoading = true;
+
+  final AddressRepository addressRepository = AddressRepository();
+  final CatalogRepository catalogRepository = CatalogRepository();
+  final CartRepository cartRepository = CartRepository();
 
   UserModel? currentUser;
   List<ProductModel> products = [];
@@ -24,6 +31,7 @@ class AppState extends ChangeNotifier {
   String searchQuery = '';
   String? selectedCategoryId;
   String? selectedSubcategoryId;
+  Timer? _debounceTimer;
 
   AppState() {
     _initializeData();
@@ -39,7 +47,6 @@ class AppState extends ChangeNotifier {
     orders = await MockRepositories.fetchOrders();
     addresses = await MockRepositories.fetchAddresses();
 
-    // Default mock cart items for immediate rich visualization
     if (products.isNotEmpty) {
       cart = [
         CartItemModel(product: products[0], quantity: 1),
@@ -47,7 +54,6 @@ class AppState extends ChangeNotifier {
       ];
     }
 
-    // Default mock chat messages
     chatMessages = [
       ChatMessageModel(
         id: 'msg-1',
@@ -72,6 +78,27 @@ class AppState extends ChangeNotifier {
   void setNavIndex(int index) {
     currentNavIndex = index;
     notifyListeners();
+  }
+
+  void onSearchChanged(String query) {
+    searchQuery = query;
+    notifyListeners();
+
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () async {
+      if (query.trim().isNotEmpty) {
+        final apiResults = await catalogRepository.searchProducts(query: query.trim());
+        if (apiResults.isNotEmpty) {
+          // Merge API results with existing products
+          for (var p in apiResults) {
+            if (!products.any((existing) => existing.id == p.id)) {
+              products.add(p);
+            }
+          }
+          notifyListeners();
+        }
+      }
+    });
   }
 
   void toggleUserRole() {
@@ -104,6 +131,7 @@ class AppState extends ChangeNotifier {
       cart.add(CartItemModel(product: product, quantity: quantity));
     }
     notifyListeners();
+    cartRepository.addItem(product.id, quantity);
   }
 
   void updateCartQuantity(String productId, int newQuantity) {
@@ -115,17 +143,20 @@ class AppState extends ChangeNotifier {
         cart[index].quantity = newQuantity;
       }
       notifyListeners();
+      cartRepository.updateItemQuantity(productId, newQuantity);
     }
   }
 
   void removeFromCart(String productId) {
     cart.removeWhere((item) => item.product.id == productId);
     notifyListeners();
+    cartRepository.removeItem(productId);
   }
 
   void clearCart() {
     cart.clear();
     notifyListeners();
+    cartRepository.clearCart();
   }
 
   double get cartSubtotal {
@@ -133,7 +164,7 @@ class AppState extends ChangeNotifier {
   }
 
   double get cartTax => cartSubtotal * 0.16; // 16% IVA
-  double get cartShippingFee => cart.isEmpty ? 0.0 : 3.50;
+  double get cartShippingFee => cart.isEmpty ? 0.0 : 2.50; // .50 Delivery standard
   double get cartTotal => cartSubtotal + cartTax + cartShippingFee;
 
   // Address Operations
@@ -145,8 +176,10 @@ class AppState extends ChangeNotifier {
           : AddressModel(
               id: 'def',
               title: 'Casa',
-              fullAddress: 'Av. Reforma #1234, Apt 4B',
-              city: 'Ciudad de México',
+              fullAddress: 'Av. Principal #45, Edif. Altamira',
+              city: 'Caracas',
+              latitude: 10.4950,
+              longitude: -66.8500,
             ),
     );
   }
@@ -154,6 +187,15 @@ class AppState extends ChangeNotifier {
   void addAddress(AddressModel newAddress) {
     addresses.add(newAddress);
     notifyListeners();
+    addressRepository.createAddress(
+      alias: newAddress.title,
+      streetAddress: newAddress.fullAddress,
+      reference: newAddress.details,
+      city: newAddress.city,
+      latitude: newAddress.latitude,
+      longitude: newAddress.longitude,
+      isActive: newAddress.isDefault,
+    );
   }
 
   void setDefaultAddress(String addressId) {
@@ -161,6 +203,13 @@ class AppState extends ChangeNotifier {
       return addr.copyWith(isDefault: addr.id == addressId);
     }).toList();
     notifyListeners();
+    addressRepository.setActiveAddress(addressId);
+  }
+
+  void removeAddress(String addressId) {
+    addresses.removeWhere((addr) => addr.id == addressId);
+    notifyListeners();
+    addressRepository.deleteAddress(addressId);
   }
 
   // Order Operations
@@ -173,14 +222,14 @@ class AppState extends ChangeNotifier {
 
   OrderModel placeOrder({required AddressModel address}) {
     final newOrder = OrderModel(
-      id: 'ORD-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+      id: 'ORD-',
       orderDate: DateTime.now().toString().substring(0, 16),
       items: List.from(cart),
       subtotal: cartSubtotal,
       tax: cartTax,
       shippingFee: cartShippingFee,
       total: cartTotal,
-      shippingAddress: '${address.fullAddress}, ${address.city}',
+      shippingAddress: ', ',
       status: OrderStatus.received,
       deliveryPerson: DeliveryPersonModel(
         name: 'Carlos Mendoza',
@@ -211,7 +260,7 @@ class AppState extends ChangeNotifier {
     if (text.trim().isEmpty) return;
 
     final userMsg = ChatMessageModel(
-      id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
+      id: 'msg-',
       senderName: currentUser?.name ?? 'Sofia Ramirez',
       text: text.trim(),
       timestamp: DateTime.now(),
@@ -221,7 +270,6 @@ class AppState extends ChangeNotifier {
     chatMessages.add(userMsg);
     notifyListeners();
 
-    // Auto response from Delivery Driver after 3 seconds
     Timer(const Duration(seconds: 3), () {
       final autoReplies = [
         '¡Entendido! Llego en unos 5 minutos.',
@@ -231,7 +279,7 @@ class AppState extends ChangeNotifier {
       final autoText = autoReplies[chatMessages.length % autoReplies.length];
 
       chatMessages.add(ChatMessageModel(
-        id: 'msg-auto-${DateTime.now().millisecondsSinceEpoch}',
+        id: 'msg-auto-',
         senderName: 'Carlos Mendoza',
         text: autoText,
         timestamp: DateTime.now(),
@@ -258,6 +306,12 @@ class AppState extends ChangeNotifier {
       }
       return matchCat;
     }).toList();
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 }
 

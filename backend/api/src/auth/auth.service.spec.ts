@@ -1,3 +1,4 @@
+import { EmailService } from '../common/email/email.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -60,7 +61,8 @@ describe('AuthService (Likora API)', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        AuthService,
+        { provide: EmailService, useValue: { sendVerificationEmail: jest.fn().mockResolvedValue(true) } },
+                AuthService,
         { provide: getRepositoryToken(User), useValue: userRepoMock },
         { provide: getRepositoryToken(FederatedIdentity), useValue: federatedRepoMock },
         { provide: getRepositoryToken(UserSession), useValue: sessionRepoMock },
