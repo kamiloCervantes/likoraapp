@@ -56,324 +56,249 @@ export default function KycDetailPage() {
   }, [id]);
 
   const handleApprove = async () => {
+    setIsApproving(true);
     try {
-      setIsApproving(true);
       const res = await fetch(`http://localhost:3000/api/v1/admin/kyc/${id}/approve`, {
-        method: 'PATCH',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_user_id: '00000000-0000-0000-0000-000000000001' }),
       });
-
       if (res.ok) {
-        const data = await res.json();
-        setToastMessage({ type: 'success', text: data.message || '✅ Solicitud Aprobada con vigencia de 1 hora!' });
-        setDetail((prev: any) => ({
-          ...prev,
-          status: 'VERIFIED',
-          rejection_reason: null,
-          expires_at: data.expires_at || new Date(Date.now() + 3600000).toISOString(),
-        }));
+        setToastMessage({ type: 'success', text: '¡Verificación aprobada exitosamente por 1 hora!' });
+        fetchDetail();
       } else {
         const err = await res.json();
-        setToastMessage({ type: 'error', text: `Error: ${err.message || 'No se pudo aprobar'}` });
+        setToastMessage({ type: 'error', text: err.message || 'Error al aprobar KYC' });
       }
     } catch (e: any) {
-      setToastMessage({ type: 'error', text: `Error de red: ${e.message || e}` });
+      setToastMessage({ type: 'error', text: 'Error de red: ' + e.message });
     } finally {
       setIsApproving(false);
     }
   };
 
-  const handleRejectConfirm = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleReject = async () => {
+    setIsRejecting(true);
     try {
-      setIsRejecting(true);
-      const fullNotes = customNotes.trim();
       const res = await fetch(`http://localhost:3000/api/v1/admin/kyc/${id}/reject`, {
-        method: 'PATCH',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          admin_user_id: '00000000-0000-0000-0000-000000000001',
           reason: rejectReason,
-          custom_notes: fullNotes,
+          custom_notes: customNotes,
         }),
       });
-
       if (res.ok) {
-        const data = await res.json();
-        const reasonText = fullNotes ? `${rejectReason}: ${fullNotes}` : rejectReason;
-        setToastMessage({ type: 'success', text: '❌ Solicitud marcada exitosamente como RECHAZADA.' });
+        setToastMessage({ type: 'success', text: 'Verificación rechazada correctamente.' });
         setShowRejectModal(false);
-        setDetail((prev: any) => ({
-          ...prev,
-          status: 'REJECTED',
-          rejection_reason: reasonText,
-          expires_at: null,
-        }));
+        fetchDetail();
       } else {
         const err = await res.json();
-        alert(`Error al rechazar: ${err.message || 'Error desconocido'}`);
+        setToastMessage({ type: 'error', text: err.message || 'Error al rechazar' });
       }
     } catch (e: any) {
-      alert(`Error de red: ${e.message || e}`);
+      setToastMessage({ type: 'error', text: 'Error de red: ' + e.message });
     } finally {
       setIsRejecting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-16 text-center text-slate-400 bg-slate-950 min-h-screen">
-        <RefreshCw size={32} className="animate-spin mx-auto text-indigo-500 mb-3" />
-        Cargando expediente de verificación...
-      </div>
-    );
-  }
-
-  if (!detail) {
-    return (
-      <div className="p-16 text-center text-slate-400 space-y-4 bg-slate-950 min-h-screen">
-        <div className="text-lg text-white">No se encontró el expediente KYC.</div>
-        <Link href="/admin/kyc" className="text-indigo-400 underline">Volver a la lista</Link>
-      </div>
-    );
-  }
-
-  const isVerified = detail.status === 'VERIFIED';
-  const isRejected = detail.status === 'REJECTED';
-  const isPending = detail.status === 'PENDING_REVIEW';
-
   return (
-    <div className="space-y-8 max-w-6xl mx-auto p-6 bg-slate-950 min-h-screen text-slate-100 relative">
-      {/* Toast Notification */}
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Top Breadcrumb & Actions */}
+      <div className="flex items-center justify-between border-b border-[#e6e1d8] pb-4">
+        <Link
+          href="/admin/kyc"
+          className="inline-flex items-center gap-2 text-xs font-bold text-[#6b7770] hover:text-[#0b1a13] transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Volver al listado de auditoría</span>
+        </Link>
+
+        {detail && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowRejectModal(true)}
+              disabled={isRejecting || isApproving}
+              className="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-800 hover:bg-rose-100 rounded-xl text-xs font-bold transition-all"
+            >
+              Rechazar Solicitud
+            </button>
+
+            <button
+              onClick={handleApprove}
+              disabled={isApproving || isRejecting}
+              className="px-6 py-2 bg-[#0b1a13] hover:bg-[#142a20] text-[#e5c396] rounded-xl text-xs font-bold shadow-md shadow-black/20 flex items-center gap-2 transition-all"
+            >
+              {isApproving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+              <span>Aprobar Verificación (+1 hora)</span>
+            </button>
+          </div>
+        )}
+      </div>
+
       {toastMessage && (
         <div
-          className={`p-4 rounded-xl flex items-center justify-between shadow-2xl transition-all ${
+          className={`p-4 rounded-2xl border text-xs font-medium flex items-center gap-3 ${
             toastMessage.type === 'success'
-              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-              : 'bg-rose-500/20 border border-rose-500/40 text-rose-300'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-rose-50 border-rose-200 text-rose-800'
           }`}
         >
-          <div className="flex items-center gap-3 font-semibold text-sm">
-            {toastMessage.type === 'success' ? <CheckCircle2 size={20} /> : <XCircle size={20} />}
-            <span>{toastMessage.text}</span>
-          </div>
-          <button
-            onClick={() => setToastMessage(null)}
-            className="text-xs underline text-slate-400 hover:text-white"
-          >
-            Cerrar
-          </button>
+          {toastMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+          <span>{toastMessage.text}</span>
         </div>
       )}
 
-      {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-        <Link href="/admin/kyc" className="flex items-center gap-2 text-slate-400 hover:text-white transition text-sm">
-          <ArrowLeft size={18} />
-          Volver a la lista
-        </Link>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setShowRejectModal(true)}
-            disabled={isRejecting}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition border cursor-pointer ${
-              isRejected
-                ? 'bg-rose-600 text-white border-rose-600 shadow-lg shadow-rose-600/20'
-                : 'bg-rose-600/20 hover:bg-rose-600 hover:text-white text-rose-300 border-rose-500/40'
-            }`}
-          >
-            <XCircle size={16} />
-            {isRejected ? 'Rechazada (Editar Motivo)' : 'Rechazar Solicitud'}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleApprove}
-            disabled={isApproving}
-            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-white text-sm font-bold shadow-lg transition cursor-pointer ${
-              isVerified
-                ? 'bg-emerald-700 hover:bg-emerald-600 shadow-emerald-700/20'
-                : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
-            }`}
-          >
-            <CheckCircle2 size={16} />
-            {isApproving ? 'Aprobando...' : isVerified ? 'Renovar Aprobación (1h)' : 'Aprobar Documento (1h)'}
-          </button>
+      {loading ? (
+        <div className="p-16 text-center text-xs text-[#8a948e]">
+          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-3 text-[#b48a4c]" />
+          Cargando expediente fotográfico KYC...
         </div>
-      </div>
-
-      {/* Status banner */}
-      {isVerified && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2 font-semibold">
-            <CheckCircle2 size={18} />
-            Esta verificación se encuentra APROBADA (Vigencia de 1 hora activa).
-          </div>
-          {detail.expires_at && (
-            <div className="text-xs font-mono text-emerald-400">
-              Vence a las: {new Date(detail.expires_at).toLocaleTimeString()}
-            </div>
-          )}
-        </div>
-      )}
-
-      {isRejected && (
-        <div className="p-4 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center gap-2 text-sm font-semibold">
-          <XCircle size={18} />
-          Esta verificación se encuentra RECHAZADA. Motivo: {detail.rejection_reason || 'No especificado'}
-        </div>
-      )}
-
-      {/* User & Document Metadata Card */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800">
-        <div>
-          <div className="text-xs text-slate-400 font-medium">Nombre del Usuario</div>
-          <div className="text-base font-bold text-white mt-1">{detail.user?.display_name || 'N/A'}</div>
-          <div className="text-xs text-slate-400 mt-0.5">{detail.user?.email || 'Sin email'}</div>
-        </div>
-        <div>
-          <div className="text-xs text-slate-400 font-medium">Documento Desencriptado</div>
-          <div className="text-base font-bold text-indigo-300 font-mono mt-1">{detail.decrypted_document_number || 'Protegido'}</div>
-          <div className="text-xs text-slate-400 mt-0.5">Tipo: {detail.document_type}</div>
-        </div>
-        <div>
-          <div className="text-xs text-slate-400 font-medium">Fecha Nacimiento Extraída</div>
-          <div className="text-base font-bold text-white font-mono mt-1">{detail.extracted_birth_date}</div>
-          <div className="text-xs text-slate-400 mt-0.5">Formato AAAA-MM-DD</div>
-        </div>
-        <div>
-          <div className="text-xs text-slate-400 font-medium">Validación Legal (+18)</div>
-          <div className="flex items-center gap-2 mt-1">
-            <span className={`px-3 py-1 rounded-full font-bold text-xs ${
-              detail.calculated_age >= 18 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-            }`}>
-              ✓ {detail.calculated_age} Años ({detail.calculated_age >= 18 ? 'Mayor de Edad Legal' : 'Menor de Edad'})
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Image Inspection Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Front Doc */}
-        <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Anverso / Frontal</span>
-            <div className="flex gap-1.5">
-              <button onClick={() => setRotation((r) => (r + 90) % 360)} className="p-1 rounded bg-slate-800 text-slate-400 hover:text-white">
-                <RotateCw size={14} />
-              </button>
-              <button onClick={() => setZoomLevel((z) => (z === 1 ? 1.5 : 1))} className="p-1 rounded bg-slate-800 text-slate-400 hover:text-white">
-                <ZoomIn size={14} />
-              </button>
-            </div>
-          </div>
-          <div className="h-64 rounded-lg bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800">
-            {detail.front_image_url ? (
-              <img
-                src={detail.front_image_url}
-                alt="Frontal"
-                className="max-h-full max-w-full object-contain transition-transform duration-300"
-                style={{ transform: `scale(${zoomLevel}) rotate(${rotation}deg)` }}
-              />
-            ) : (
-              <span className="text-slate-500 text-xs">Sin foto frontal</span>
-            )}
-          </div>
-        </div>
-
-        {/* Back Doc */}
-        <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Reverso / Dorsal</span>
-          </div>
-          <div className="h-64 rounded-lg bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800">
-            {detail.back_image_url ? (
-              <img src={detail.back_image_url} alt="Reverso" className="max-h-full max-w-full object-contain" />
-            ) : (
-              <span className="text-slate-500 text-xs">No requerida (Pasaporte) o no adjunta</span>
-            )}
-          </div>
-        </div>
-
-        {/* Selfie Live Photo */}
-        <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Selfie (Prueba de Vida)</span>
-          </div>
-          <div className="h-64 rounded-lg bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800">
-            {detail.selfie_image_url ? (
-              <img src={detail.selfie_image_url} alt="Selfie" className="max-h-full max-w-full object-contain" />
-            ) : (
-              <span className="text-slate-500 text-xs">Sin foto selfie</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Modal de Rechazo Mejorado */}
-      {showRejectModal && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999]">
-          <form onSubmit={handleRejectConfirm} className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in duration-150">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <XCircle className="text-rose-500" size={22} />
-                Rechazar Verificación KYC
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowRejectModal(false)}
-                className="text-slate-400 hover:text-white text-lg font-bold"
-              >
-                ✕
-              </button>
+      ) : !detail ? (
+        <div className="p-16 text-center text-xs text-[#8a948e]">Expediente no encontrado.</div>
+      ) : (
+        <div className="space-y-6">
+          {/* User & Document Metadata Card */}
+          <div className="bg-white border border-[#e6e1d8] rounded-3xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <span className="text-[10px] uppercase tracking-wider text-[#8a948e] font-bold">Cliente</span>
+              <h3 className="font-bold text-sm text-[#0b1a13]">{detail.user_display_name || 'Sin Nombre'}</h3>
+              <p className="text-xs text-[#6b7770] font-mono">{detail.user_email}</p>
             </div>
 
             <div>
-              <label className="text-xs text-slate-300 font-semibold block mb-2">Motivo Tipificado de Rechazo</label>
+              <span className="text-[10px] uppercase tracking-wider text-[#8a948e] font-bold">Tipo Documento</span>
+              <p className="font-bold text-sm text-[#0b1a13]">{detail.document_type || 'Cédula de Ciudadanía'}</p>
+              <p className="text-xs text-[#6b7770]">Documento Oficial</p>
+            </div>
+
+            <div>
+              <span className="text-[10px] uppercase tracking-wider text-[#8a948e] font-bold">Fecha Nacimiento</span>
+              <p className="font-bold text-sm text-[#0b1a13]">{detail.extracted_birth_date || 'No extraída'}</p>
+              <p className="text-xs text-[#b48a4c] font-bold">{detail.calculated_age ? `${detail.calculated_age} años (+18)` : 'Edad desconocida'}</p>
+            </div>
+
+            <div>
+              <span className="text-[10px] uppercase tracking-wider text-[#8a948e] font-bold">Estado Actual</span>
+              <div className="mt-1">
+                <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase ${
+                  detail.status === 'VERIFIED'
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : detail.status === 'REJECTED'
+                    ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                    : 'bg-amber-50 text-amber-800 border border-amber-200'
+                }`}>
+                  {detail.status}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Photo Comparison Studio */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Front Document */}
+            <div className="bg-white border border-[#e6e1d8] rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-serif-title font-bold text-sm text-[#0b1a13]">Documento Frontal</h4>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setRotation((prev) => (prev + 90) % 360)}
+                    className="p-2 bg-[#fcfbf9] border border-[#e6e1d8] rounded-xl text-xs text-[#141c18] hover:border-[#b48a4c]"
+                  >
+                    <RotateCw className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setZoomLevel((prev) => (prev === 1 ? 1.5 : 1))}
+                    className="p-2 bg-[#fcfbf9] border border-[#e6e1d8] rounded-xl text-xs text-[#141c18] hover:border-[#b48a4c]"
+                  >
+                    <ZoomIn className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="w-full h-80 bg-[#0b1a13]/5 rounded-2xl flex items-center justify-center overflow-hidden border border-[#e6e1d8]">
+                {detail.front_image_url ? (
+                  <img
+                    src={detail.front_image_url}
+                    alt="Documento Frontal"
+                    style={{ transform: `rotate(${rotation}deg) scale(${zoomLevel})`, transition: 'all 0.3s ease' }}
+                    className="max-h-full max-w-full object-contain rounded-xl"
+                  />
+                ) : (
+                  <span className="text-xs text-[#8a948e]">Sin imagen frontal</span>
+                )}
+              </div>
+            </div>
+
+            {/* Selfie Biometrics */}
+            <div className="bg-white border border-[#e6e1d8] rounded-3xl p-6 shadow-sm space-y-4">
+              <h4 className="font-serif-title font-bold text-sm text-[#0b1a13]">Selfie en Vivo</h4>
+
+              <div className="w-full h-80 bg-[#0b1a13]/5 rounded-2xl flex items-center justify-center overflow-hidden border border-[#e6e1d8]">
+                {detail.selfie_image_url ? (
+                  <img
+                    src={detail.selfie_image_url}
+                    alt="Selfie Biometría"
+                    className="max-h-full max-w-full object-contain rounded-xl"
+                  />
+                ) : (
+                  <span className="text-xs text-[#8a948e]">Sin selfie</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-[#0b1a13]/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-[#e6e1d8] rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl space-y-5">
+            <h3 className="font-serif-title font-bold text-base text-[#0b1a13]">Rechazar Verificación KYC</h3>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#141c18]">Motivo Principal</label>
               <select
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-rose-500"
+                className="w-full bg-[#fcfbf9] border border-[#e6e1d8] rounded-xl px-3.5 py-2.5 text-xs text-[#141c18]"
               >
-                <option value="BLURRY_IMAGE">📷 Fotografía Borrosa o Ilegible</option>
-                <option value="EXPIRED_DOCUMENT">⌛ Documento de Identidad Expirado</option>
-                <option value="UNDERAGE_DETECTED">🔞 Menor de Edad Detectado</option>
-                <option value="NAME_MISMATCH">👤 Nombre no coincide con Documento</option>
-                <option value="SELFIE_MISMATCH">🤳 Selfie no coincide con la foto del Documento</option>
-                <option value="INVALID_DOCUMENT">📄 Documento no Oficial / Inválido</option>
+                <option value="BLURRY_IMAGE">Fotografía Borrosa o Ilegible</option>
+                <option value="UNDERAGE">Menor de Edad (+18)</option>
+                <option value="EXPIRED_DOCUMENT">Documento Expirado</option>
+                <option value="FACE_MISMATCH">No coincide el rostro con la cédula</option>
+                <option value="OTHER">Otro motivo</option>
               </select>
             </div>
 
-            <div>
-              <label className="text-xs text-slate-300 font-semibold block mb-2">Notas Adicionales para el Cliente (Opcional)</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#141c18]">Notas Adicionales (Opcional)</label>
               <textarea
                 value={customNotes}
                 onChange={(e) => setCustomNotes(e.target.value)}
-                rows={3}
-                placeholder="Indica detalles para que el cliente pueda corregir su envío..."
-                className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                placeholder="Indique detalles para el usuario..."
+                className="w-full bg-[#fcfbf9] border border-[#e6e1d8] rounded-xl p-3 text-xs text-[#141c18] h-24"
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-3 pt-3 border-t border-[#e6e1d8]">
               <button
-                type="button"
                 onClick={() => setShowRejectModal(false)}
-                className="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-sm font-semibold"
+                className="px-4 py-2 text-xs font-bold text-[#6b7770]"
               >
                 Cancelar
               </button>
               <button
-                type="submit"
+                onClick={handleReject}
                 disabled={isRejecting}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-lg shadow-rose-600/30 flex items-center gap-2"
+                className="px-6 py-2.5 bg-rose-700 hover:bg-rose-800 text-white rounded-xl text-xs font-bold shadow-md"
               >
-                <XCircle size={16} />
-                {isRejecting ? 'Procesando Rechazo...' : 'Confirmar Rechazo'}
+                {isRejecting ? 'Rechazando...' : 'Confirmar Rechazo'}
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
     </div>
