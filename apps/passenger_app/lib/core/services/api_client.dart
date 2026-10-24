@@ -177,6 +177,7 @@ class ApiClient {
     final headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
     };
     if (_accessToken != null) {
       headers['Authorization'] = 'Bearer $_accessToken';

@@ -84,9 +84,19 @@ export default function ProductsAdminPage() {
     is_active: true,
   });
 
+    const getAuthHeaders = () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('likora_admin_token') : null;
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: 'Bearer ' + token } : {}),
+    };
+  };
+
   const fetchStores = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/v1/admin/stores');
+      const res = await fetch('http://localhost:3000/api/v1/admin/stores', {
+        headers: getAuthHeaders(),
+      });
       if (res.ok) {
         const json = await res.json();
         setStores(json.data || []);
@@ -98,7 +108,9 @@ export default function ProductsAdminPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/v1/admin/categories');
+      const res = await fetch('http://localhost:3000/api/v1/admin/categories', {
+        headers: getAuthHeaders(),
+      });
       if (res.ok) {
         const json = await res.json();
         setCategories(json.data || []);
@@ -112,15 +124,19 @@ export default function ProductsAdminPage() {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (selectedStoreId !== 'all') params.append('store_id', selectedStoreId);
+      if (selectedStoreId !== 'all' && selectedStoreId !== 'global') params.append('store_id', selectedStoreId);
       if (selectedCategoryId !== 'all') params.append('category_id', selectedCategoryId);
+      if (searchTerm) params.append('q', searchTerm);
+            params.append('limit', '20');
 
-      const url = `http://localhost:3000/api/v1/admin/products${params.toString() ? '?' + params.toString() : ''}`;
-      const res = await fetch(url);
+      const url = 'http://localhost:3000/api/v1/admin/products' + (params.toString() ? '?' + params.toString() : '');
+      const res = await fetch(url, {
+        headers: getAuthHeaders(),
+      });
       if (res.ok) {
         const json = await res.json();
         setProducts(json.data || []);
-      }
+              }
     } catch (e) {
       console.error('Error fetching products:', e);
     } finally {
@@ -182,7 +198,7 @@ export default function ProductsAdminPage() {
     try {
       const res = await fetch(`http://localhost:3000/api/v1/admin/products/${id}/stock`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ adjustment }),
       });
       if (res.ok) {
@@ -236,7 +252,7 @@ export default function ProductsAdminPage() {
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
 
@@ -260,8 +276,7 @@ export default function ProductsAdminPage() {
 
     const matchesStore =
       selectedStoreId === 'all' ||
-      p.store_id === selectedStoreId ||
-      (!p.store_id && selectedStoreId === 'global');
+      (selectedStoreId === 'global' ? !p.store_id : (!p.store_id || p.store_id === selectedStoreId));
 
     const matchesCategory =
       selectedCategoryId === 'all' || p.category_id === selectedCategoryId;
@@ -378,7 +393,8 @@ export default function ProductsAdminPage() {
                   onChange={(e) => setSelectedStoreId(e.target.value)}
                   className="h-9 px-3 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
-                  <option value="all">🏬 Todas las Tiendas</option>
+                  <option value="all">🏬 Todas las Tiendas y Globales</option>
+                  <option value="global">🌐 Solo Productos Globales</option>
                   {stores.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name} ({s.city})

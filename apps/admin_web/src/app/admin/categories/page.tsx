@@ -56,9 +56,22 @@ export default function CategoriesAdminPage() {
     is_active: true,
   });
 
+    const getAuthHeaders = () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('likora_admin_token') : null;
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: 'Bearer ' + token } : {}),
+    };
+  };
+
   const fetchStores = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/v1/admin/stores');
+      let res = await fetch('http://localhost:3000/api/v1/admin/stores', {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        res = await fetch('http://localhost:3000/api/v1/stores');
+      }
       if (res.ok) {
         const json = await res.json();
         setStores(json.data || []);
@@ -71,10 +84,18 @@ export default function CategoriesAdminPage() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const url = selectedStoreId !== 'all'
-        ? `http://localhost:3000/api/v1/admin/categories?store_id=${selectedStoreId}`
+      const url = (selectedStoreId !== 'all' && selectedStoreId !== 'global')
+        ? 'http://localhost:3000/api/v1/admin/categories?store_id=' + selectedStoreId
         : 'http://localhost:3000/api/v1/admin/categories';
-      const res = await fetch(url);
+      let res = await fetch(url, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const fallbackUrl = (selectedStoreId !== 'all' && selectedStoreId !== 'global')
+          ? 'http://localhost:3000/api/v1/categories?store_id=' + selectedStoreId
+          : 'http://localhost:3000/api/v1/categories';
+        res = await fetch(fallbackUrl);
+      }
       if (res.ok) {
         const json = await res.json();
         setCategories(json.data || []);
@@ -149,7 +170,7 @@ export default function CategoriesAdminPage() {
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           ...formData,
           store_id: formData.store_id ? formData.store_id : null,
@@ -177,8 +198,7 @@ export default function CategoriesAdminPage() {
 
     const matchesStore =
       selectedStoreId === 'all' ||
-      c.store_id === selectedStoreId ||
-      (!c.store_id && selectedStoreId === 'global');
+      (selectedStoreId === 'global' ? !c.store_id : (!c.store_id || c.store_id === selectedStoreId));
 
     return matchesSearch && matchesStore;
   });
@@ -234,7 +254,8 @@ export default function CategoriesAdminPage() {
                 onChange={(e) => setSelectedStoreId(e.target.value)}
                 className="h-9 px-3 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
-                <option value="all">🏬 Todas las Tiendas</option>
+                <option value="all">🏬 Todas las Tiendas y Globales</option>
+                  <option value="global">🌐 Solo Categorías Globales</option>
                 {stores.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name} ({s.city})

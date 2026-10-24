@@ -82,10 +82,20 @@ export default function StoresAdminPage() {
     is_main: false,
   });
 
+    const getAuthHeaders = () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('likora_admin_token') : null;
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: 'Bearer ' + token } : {}),
+    };
+  };
+
   const fetchStores = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:3000/api/v1/admin/stores');
+      const res = await fetch('http://localhost:3000/api/v1/admin/stores', {
+        headers: getAuthHeaders(),
+      });
       if (res.ok) {
         const json = await res.json();
         setStores(json.data || []);
@@ -248,7 +258,7 @@ export default function StoresAdminPage() {
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: jsonEncodeSafe(payload),
       });
 
