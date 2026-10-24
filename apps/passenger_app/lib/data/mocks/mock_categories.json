@@ -1,44 +1,178 @@
 [
   {
-    "id": "cat-vinos",
+    "id": "a0000000-0000-0000-0000-000000000001",
+    "name": "Tequila y Mezcal",
+    "icon": "local_bar",
+    "subcategories": [
+      {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "name": "Tequila Blanco / Silver"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000002",
+        "name": "Tequila Reposado"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000003",
+        "name": "Tequila Añejo"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000004",
+        "name": "Tequila Extra Añejo y Cristalino"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000005",
+        "name": "Mezcal"
+      }
+    ]
+  },
+  {
+    "id": "a0000000-0000-0000-0000-000000000002",
+    "name": "Whisky / Whiskey",
+    "icon": "liquor",
+    "subcategories": [
+      {
+        "id": "b0000000-0000-0000-0000-000000000006",
+        "name": "Bourbon & Tennessee"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000007",
+        "name": "Rye Whiskey"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000008",
+        "name": "Scotch Whisky (Escocés)"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000009",
+        "name": "Irish & Canadian"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000010",
+        "name": "Japanese & World Whiskeys"
+      }
+    ]
+  },
+  {
+    "id": "a0000000-0000-0000-0000-000000000003",
+    "name": "Vodka",
+    "icon": "local_bar",
+    "subcategories": [
+      {
+        "id": "b0000000-0000-0000-0000-000000000011",
+        "name": "Vodka Clásico (Original)"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000012",
+        "name": "Vodka Saborizado"
+      }
+    ]
+  },
+  {
+    "id": "a0000000-0000-0000-0000-000000000004",
     "name": "Vinos",
     "icon": "wine_bar",
     "subcategories": [
-      { "id": "sub-vinos-tintos", "name": "Vinos Tintos" },
-      { "id": "sub-vinos-blancos", "name": "Vinos Blancos" },
-      { "id": "sub-vinos-rosados", "name": "Vinos Rosados" },
-      { "id": "sub-esposos", "name": "Espumosos y Champagne" }
+      {
+        "id": "b0000000-0000-0000-0000-000000000013",
+        "name": "Vinos Tintos"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000014",
+        "name": "Vinos Blancos"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000015",
+        "name": "Vinos Rosados"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000016",
+        "name": "Espumosos y Champagne"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000017",
+        "name": "Vinos Fortificados y Dulces"
+      }
     ]
   },
   {
-    "id": "cat-cervezas",
-    "name": "Cervezas",
-    "icon": "sports_bar",
-    "subcategories": [
-      { "id": "sub-cervezas-artesanales", "name": "Artesanales (IPA / Stout)" },
-      { "id": "sub-cervezas-nacionales", "name": "Nacionales" },
-      { "id": "sub-cervezas-importadas", "name": "Importadas" }
-    ]
-  },
-  {
-    "id": "cat-whiskys",
-    "name": "Whiskys",
+    "id": "a0000000-0000-0000-0000-000000000005",
+    "name": "Ron (Rum)",
     "icon": "liquor",
     "subcategories": [
-      { "id": "sub-whiskys-single-malt", "name": "Single Malt" },
-      { "id": "sub-whiskys-blended", "name": "Blended Scotch" },
-      { "id": "sub-whiskys-bourbon", "name": "Bourbon & Tennessee" }
+      {
+        "id": "b0000000-0000-0000-0000-000000000018",
+        "name": "Ron Blanco / Carta Blanca"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000019",
+        "name": "Ron Añejo / Dorado / Oscuro"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000020",
+        "name": "Ron Especiado (Spiced)"
+      }
     ]
   },
   {
-    "id": "cat-licores",
-    "name": "Licores y Espirituosas",
-    "icon": "local_bar",
+    "id": "a0000000-0000-0000-0000-000000000006",
+    "name": "Brandy & Coñac (Cognac)",
+    "icon": "wine_bar",
     "subcategories": [
-      { "id": "sub-tequilas", "name": "Tequila y Mezcal" },
-      { "id": "sub-ginebras", "name": "Ginebras" },
-      { "id": "sub-rones", "name": "Rones Añejos" },
-      { "id": "sub-vodkas", "name": "Vodkas" }
+      {
+        "id": "b0000000-0000-0000-0000-000000000021",
+        "name": "Cognac VS (Very Special)"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000022",
+        "name": "Cognac VSOP (Very Superior Old Pale)"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000023",
+        "name": "Cognac XO (Extra Old)"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000024",
+        "name": "Brandy"
+      }
+    ]
+  },
+  {
+    "id": "a0000000-0000-0000-0000-000000000007",
+    "name": "Cervezas y RTD (Ready to Drink)",
+    "icon": "sports_bar",
+    "subcategories": [
+      {
+        "id": "b0000000-0000-0000-0000-000000000025",
+        "name": "Cervezas Importadas & Nacionales"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000026",
+        "name": "Cervezas Artesanales (Craft Beer)"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000027",
+        "name": "Cócteles Preparados en Lata / Hard Seltzers"
+      }
+    ]
+  },
+  {
+    "id": "a0000000-0000-0000-0000-000000000008",
+    "name": "Licores, Cremas y Tradicionales",
+    "icon": "liquor",
+    "subcategories": [
+      {
+        "id": "b0000000-0000-0000-0000-000000000028",
+        "name": "Aguardientes y Anisados"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000029",
+        "name": "Cremas de Whisky y Licores Dulces"
+      },
+      {
+        "id": "b0000000-0000-0000-0000-000000000030",
+        "name": "Digestivos y Herbales"
+      }
     ]
   }
 ]

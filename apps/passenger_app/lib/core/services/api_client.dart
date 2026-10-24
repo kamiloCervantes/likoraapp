@@ -116,6 +116,63 @@ class ApiClient {
     }
   }
 
+  static Future<http.Response> put(String endpoint, {Map<String, dynamic>? body}) async {
+    final uri = Uri.parse('$baseUrl$endpoint');
+    final payloadStr = body != null ? jsonEncode(body) : '';
+    debugPrint('🌐 [API PUT REQUEST] --> $uri');
+    debugPrint('📤 [PAYLOAD]: $payloadStr');
+
+    try {
+      final response = await http.put(
+        uri,
+        headers: _headers(),
+        body: payloadStr.isNotEmpty ? payloadStr : null,
+      );
+      debugPrint('📥 [API PUT RESPONSE] <-- [${response.statusCode}] $uri');
+      debugPrint('📦 [BODY]: ${response.body}');
+
+      if (response.statusCode == 401 && _refreshToken != null) {
+        debugPrint('🔄 [ApiClient] Token expirado (401). Intentando renovación...');
+        final refreshed = await _refreshAccessToken();
+        if (refreshed) {
+          return await http.put(
+            uri,
+            headers: _headers(),
+            body: payloadStr.isNotEmpty ? payloadStr : null,
+          );
+        }
+      }
+      return response;
+    } catch (e, stack) {
+      debugPrint('❌ [API PUT ERROR] en $uri: $e');
+      debugPrint('📍 $stack');
+      rethrow;
+    }
+  }
+
+  static Future<http.Response> delete(String endpoint) async {
+    final uri = Uri.parse('$baseUrl$endpoint');
+    debugPrint('🌐 [API DELETE REQUEST] --> $uri');
+
+    try {
+      final response = await http.delete(uri, headers: _headers());
+      debugPrint('📥 [API DELETE RESPONSE] <-- [${response.statusCode}] $uri');
+
+      if (response.statusCode == 401 && _refreshToken != null) {
+        debugPrint('🔄 [ApiClient] Token expirado (401). Intentando renovación...');
+        final refreshed = await _refreshAccessToken();
+        if (refreshed) {
+          return await http.delete(uri, headers: _headers());
+        }
+      }
+      return response;
+    } catch (e, stack) {
+      debugPrint('❌ [API DELETE ERROR] en $uri: $e');
+      debugPrint('📍 $stack');
+      rethrow;
+    }
+  }
+
   static Map<String, String> _headers() {
     final headers = {
       'Content-Type': 'application/json',

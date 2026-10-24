@@ -11,17 +11,26 @@ import {
   Users,
   Settings,
   CreditCard,
+  Store,
+  LogOut,
+  Sparkles,
+  Camera,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useAuth } from '../context/AuthContext';
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   const generalItems = [
     { label: 'Overview', href: '/', icon: LayoutDashboard, exact: true },
     { label: 'Auditoría KYC (+18)', href: '/admin/kyc', icon: ShieldCheck },
+    { label: 'Tiendas & Puntos de Venta', href: '/admin/stores', icon: Store },
     { label: 'Categorías', href: '/admin/categories', icon: Layers },
     { label: 'Productos & Stock', href: '/admin/products', icon: Package },
+    { label: 'Promociones & Banners', href: '/admin/promotions', icon: Sparkles },
+    { label: 'Verificaciones de Entrega', href: '/admin/deliveries', icon: Camera },
     { label: 'Pedidos & Despachos', href: '/admin/orders', icon: ShoppingBag },
     { label: 'Usuarios & Clientes', href: '/admin/users', icon: Users },
   ];
@@ -35,6 +44,10 @@ export function Sidebar() {
     if (href === '/') return pathname === '/';
     return pathname === href || pathname.startsWith(href);
   };
+
+  const userInitials = user?.display_name
+    ? user.display_name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+    : 'LA';
 
   return (
     <aside className="w-64 min-w-[16rem] bg-[#181440] flex flex-col justify-between flex-shrink-0 min-h-screen text-white select-none shadow-2xl border-r border-indigo-950">
@@ -51,7 +64,7 @@ export function Sidebar() {
 
         <div className="px-4 py-4 space-y-6">
           <div>
-            <div className="px-3 px-2 text-[11px] font-semibold text-[#928cb8] uppercase tracking-wider">General</div>
+            <div className="px-3 pb-2 text-[11px] font-semibold text-[#928cb8] uppercase tracking-wider">General</div>
             <nav className="space-y-1">
               {generalItems.map((item) => {
                 const Icon = item.icon;
@@ -98,12 +111,33 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="p-4 m-4 bg-[#120f33] border border-white/5 rounded-2xl flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-[#3b3388] text-white font-bold text-xs flex items-center justify-center ring-1 ring-white/20">LA</div>
-        <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold text-white truncate">Likora Admin</div>
-          <div className="text-[10px] text-[#928cb8] truncate">admin@likora.app</div>
+      <div className="p-3 m-3 bg-[#120f33] border border-white/5 rounded-2xl flex items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-full bg-[#3b3388] text-amber-300 font-bold text-xs flex items-center justify-center ring-1 ring-white/20 flex-shrink-0">
+            {userInitials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-semibold text-white truncate">
+              {user?.display_name || 'Likora Admin'}
+            </div>
+            <div className="text-[10px] text-[#928cb8] truncate">
+              {user?.email || 'admin@likora.app'}
+            </div>
+          </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm('¿Desea cerrar la sesión administrativa?')) {
+              logout();
+            }
+          }}
+          className="p-1.5 rounded-lg text-[#928cb8] hover:text-rose-400 hover:bg-white/5 transition-colors"
+          title="Cerrar Sesión"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </div>
     </aside>
   );

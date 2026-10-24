@@ -2,6 +2,7 @@ import { EmailService } from '../common/email/email.service';
 import {
   Injectable,
   UnauthorizedException,
+  ForbiddenException,
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
@@ -123,6 +124,33 @@ export class AuthService {
 
     return this.generateTokens(user, AppSource.CONSUMER_APP, reqInfo);
   }
+
+  async loginAdmin(dto: LoginDto, reqInfo: { ip: string; userAgent: string }): Promise<AuthResponseDto> {
+    const identifier = dto.email.toLowerCase().trim();
+    const user = await this.userRepo.findOne({
+      where: [{ email: identifier }, { phone_number: identifier }],
+    });
+
+    if (!user || !user.password_hash) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    if (user.role !== UserRole.ADMIN && user.role !== UserRole.STORE_OPERATOR) {
+      throw new ForbiddenException('Acceso restringido: Se requieren permisos de Administrador.');
+    }
+
+    if (user.status === UserStatus.SUSPENDED) {
+      throw new UnauthorizedException('La cuenta de administrador se encuentra suspendida.');
+    }
+
+    const isMatch = await bcrypt.compare(dto.password, user.password_hash);
+    if (!isMatch) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    return this.generateTokens(user, AppSource.ADMIN_WEB, reqInfo);
+  }
+
 
   async authenticateGoogleIdToken(
     idToken: string,

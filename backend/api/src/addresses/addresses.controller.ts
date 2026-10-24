@@ -18,7 +18,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
 
-@Controller('api/v1/users/me/addresses')
+@Controller('users/me/addresses')
 @UseGuards(JwtAuthGuard)
 export class AddressesController {
   constructor(private readonly addressesService: AddressesService) {}

@@ -23,7 +23,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../common/enums/user-role.enum';
 
-@Controller('api/v1/admin')
+@Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.STORE_OPERATOR)
 export class AdminCatalogController {
@@ -31,8 +31,8 @@ export class AdminCatalogController {
 
   // ================= CATEGORÍAS =================
   @Get('categories')
-  async getAllCategories() {
-    const categories = await this.catalogService.getCategories(false);
+  async getAllCategories(@Query('store_id') storeId?: string) {
+    const categories = await this.catalogService.getCategories(false, storeId);
     return {
       status: 'success',
       data: categories,

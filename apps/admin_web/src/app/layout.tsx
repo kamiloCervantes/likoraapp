@@ -1,7 +1,7 @@
 import './globals.css';
 import React from 'react';
-import { Sidebar } from '../components/Sidebar';
-import { TopHeader } from '../components/TopHeader';
+import { AuthProvider } from '../context/AuthContext';
+import { AdminLayoutWrapper } from '../components/AdminLayoutWrapper';
 
 export const metadata = {
   title: 'Likora Admin - Suite de Gestión',
@@ -11,17 +11,12 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className="min-h-screen bg-slate-50 text-slate-900 flex antialiased">
-        {/* Fixed Left Sidebar (Always Visible) */}
-        <Sidebar />
-
-        {/* Right Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#f8fafc]">
-          <TopHeader />
-          <main className="flex-1 p-6 md:p-10 overflow-y-auto">
+      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
+        <AuthProvider>
+          <AdminLayoutWrapper>
             {children}
-          </main>
-        </div>
+          </AdminLayoutWrapper>
+        </AuthProvider>
       </body>
     </html>
   );

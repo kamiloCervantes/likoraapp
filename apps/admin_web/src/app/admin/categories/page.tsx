@@ -1,15 +1,33 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Layers, Plus, Search, RefreshCw, Edit2, Trash2, Image as ImageIcon } from 'lucide-react';
+import {
+  Layers,
+  Plus,
+  Search,
+  RefreshCw,
+  Edit2,
+  Trash2,
+  Image as ImageIcon,
+  Store as StoreIcon,
+  Filter,
+} from 'lucide-react';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
-import { cn } from '../../../lib/utils';
+
+interface Store {
+  id: string;
+  name: string;
+  code: string | null;
+  city: string;
+}
 
 interface Category {
   id: string;
+  store_id: string | null;
+  store?: Store | null;
   name: string;
   slug: string;
   description: string | null;
@@ -21,12 +39,15 @@ interface Category {
 
 export default function CategoriesAdminPage() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStoreId, setSelectedStoreId] = useState<string>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
   const [formData, setFormData] = useState({
+    store_id: '',
     name: '',
     slug: '',
     description: '',
@@ -35,10 +56,25 @@ export default function CategoriesAdminPage() {
     is_active: true,
   });
 
+  const fetchStores = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/api/v1/admin/stores');
+      if (res.ok) {
+        const json = await res.json();
+        setStores(json.data || []);
+      }
+    } catch (e) {
+      console.error('Error fetching stores:', e);
+    }
+  };
+
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:3000/api/v1/admin/categories');
+      const url = selectedStoreId !== 'all'
+        ? `http://localhost:3000/api/v1/admin/categories?store_id=${selectedStoreId}`
+        : 'http://localhost:3000/api/v1/admin/categories';
+      const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();
         setCategories(json.data || []);
@@ -51,12 +87,17 @@ export default function CategoriesAdminPage() {
   };
 
   useEffect(() => {
-    fetchCategories();
+    fetchStores();
   }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [selectedStoreId]);
 
   const openCreateModal = () => {
     setEditingCategory(null);
     setFormData({
+      store_id: selectedStoreId !== 'all' ? selectedStoreId : (stores[0]?.id || ''),
       name: '',
       slug: '',
       description: '',
@@ -70,6 +111,7 @@ export default function CategoriesAdminPage() {
   const openEditModal = (cat: Category) => {
     setEditingCategory(cat);
     setFormData({
+      store_id: cat.store_id || '',
       name: cat.name,
       slug: cat.slug,
       description: cat.description || '',
@@ -80,19 +122,39 @@ export default function CategoriesAdminPage() {
     setModalOpen(true);
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta categoría?')) return;
+    try {
+      const res = await fetch(`http://localhost:3000/api/v1/admin/categories/${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok || res.status === 204) {
+        fetchCategories();
+      } else {
+        const err = await res.json();
+        alert(err.message || 'Error al eliminar categoría');
+      }
+    } catch (e) {
+      console.error('Error deleting category:', e);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const url = editingCategory
-        ? ('http://localhost:3000/api/v1/admin/categories/' + editingCategory.id)
+        ? `http://localhost:3000/api/v1/admin/categories/${editingCategory.id}`
         : 'http://localhost:3000/api/v1/admin/categories';
-
       const method = editingCategory ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          store_id: formData.store_id ? formData.store_id : null,
+          slug: formData.slug || undefined,
+        }),
       });
 
       if (res.ok) {
@@ -100,72 +162,92 @@ export default function CategoriesAdminPage() {
         fetchCategories();
       } else {
         const err = await res.json();
-        alert(err.message || 'Error guardando categoría');
+        alert(err.message || 'Error al guardar categoría');
       }
-    } catch (err) {
-      console.error('Error saving category:', err);
+    } catch (e) {
+      console.error('Error saving category:', e);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Está seguro de eliminar esta categoría?')) return;
-    try {
-      const res = await fetch('http://localhost:3000/api/v1/admin/categories/' + id, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        fetchCategories();
-      } else {
-        const err = await res.json();
-        alert(err.message || 'No se puede eliminar la categoría');
-      }
-    } catch (err) {
-      console.error('Error deleting category:', err);
-    }
-  };
+  const filteredCategories = categories.filter((c) => {
+    const matchesSearch =
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.description && c.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  const filteredCategories = categories.filter((c) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.slug.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    const matchesStore =
+      selectedStoreId === 'all' ||
+      c.store_id === selectedStoreId ||
+      (!c.store_id && selectedStoreId === 'global');
+
+    return matchesSearch && matchesStore;
+  });
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <Layers className="w-6 h-6 text-primary" />
-            Gestión de Categorías
+            Categorías del Catálogo
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Organización del catálogo de licores, bebidas y complementos para la plataforma.
+            Administra las categorías y asígnalas a su tienda / punto de venta correspondiente.
           </p>
         </div>
-
-        <Button onClick={openCreateModal} className="shadow-sm">
-          <Plus className="w-4 h-4 mr-1.5" />
-          Nueva Categoría
-        </Button>
-      </div>
-
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5 pointer-events-none" />
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por nombre o slug..."
-            className="pl-9 h-9"
-          />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={fetchCategories} disabled={loading}>
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+          <Button size="sm" onClick={openCreateModal} className="bg-primary text-white shadow-md">
+            <Plus className="w-4 h-4 mr-1.5" />
+            Nueva Categoría
+          </Button>
         </div>
-
-        <Button variant="outline" size="sm" onClick={fetchCategories} disabled={loading}>
-          <RefreshCw className={cn('w-3.5 h-3.5 mr-1.5', loading && 'animate-spin')} />
-          Actualizar
-        </Button>
       </div>
 
-      <Card>
+      {/* Filter and Search Bar */}
+      <Card className="border-border shadow-xs">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            {/* Search */}
+            <div className="relative flex-1 max-w-sm">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar categoría por nombre o slug..."
+                className="pl-9 text-xs h-9 bg-background"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {/* Filter by Store (Required) */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                <StoreIcon className="w-3.5 h-3.5 text-primary" />
+                <span>Filtrar por Tienda:</span>
+              </div>
+              <select
+                value={selectedStoreId}
+                onChange={(e) => setSelectedStoreId(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="all">🏬 Todas las Tiendas</option>
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.city})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      <Card className="border-border shadow-xs">
         <CardContent className="p-0">
           {loading ? (
             <div className="p-12 text-center text-xs text-muted-foreground">
@@ -176,7 +258,7 @@ export default function CategoriesAdminPage() {
             <div className="p-12 text-center text-xs text-muted-foreground space-y-1">
               <Layers className="w-6 h-6 mx-auto text-muted-foreground" />
               <div className="font-semibold text-foreground text-sm">Sin categorías</div>
-              <p>No se encontraron categorías registradas.</p>
+              <p>No se encontraron categorías asociadas.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -185,6 +267,7 @@ export default function CategoriesAdminPage() {
                   <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold">
                     <th className="py-3 px-4">Orden</th>
                     <th className="py-3 px-4">Imagen y Nombre</th>
+                    <th className="py-3 px-4">Tienda Asociada</th>
                     <th className="py-3 px-4">Slug</th>
                     <th className="py-3 px-4">Descripción</th>
                     <th className="py-3 px-4">Estado</th>
@@ -212,6 +295,19 @@ export default function CategoriesAdminPage() {
                           )}
                           <div className="font-semibold text-foreground">{cat.name}</div>
                         </div>
+                      </td>
+                      {/* Tienda Asociada Column */}
+                      <td className="py-3.5 px-4">
+                        {cat.store ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/20">
+                            <StoreIcon className="w-3 h-3" />
+                            {cat.store.name}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-muted text-muted-foreground border border-border">
+                            Global (Todas)
+                          </span>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 text-muted-foreground font-mono">{cat.slug}</td>
                       <td className="py-3.5 px-4 text-muted-foreground max-w-xs truncate">
@@ -251,6 +347,7 @@ export default function CategoriesAdminPage() {
         </CardContent>
       </Card>
 
+      {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-background border border-border rounded-xl w-full max-w-md shadow-2xl p-6 space-y-4">
@@ -267,13 +364,35 @@ export default function CategoriesAdminPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+              {/* Tienda Selector */}
+              <div>
+                <label className="block font-medium text-muted-foreground mb-1">
+                  Tienda / Punto de Venta Asociado *
+                </label>
+                <select
+                  value={formData.store_id}
+                  onChange={(e) => setFormData({ ...formData, store_id: e.target.value })}
+                  className="w-full h-9 px-3 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="">🌐 Global (Disponible en todas las tiendas)</option>
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      🏬 {s.name} ({s.city})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Asocia esta categoría exclusivamente a un punto de venta o déjala global.
+                </p>
+              </div>
+
               <div>
                 <label className="block font-medium text-muted-foreground mb-1">Nombre *</label>
                 <Input
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ej: Ron y Destilados"
+                  placeholder="Ej: Tequila y Mezcal"
                 />
               </div>
 
@@ -282,7 +401,7 @@ export default function CategoriesAdminPage() {
                 <Input
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  placeholder="ej: ron-destilados"
+                  placeholder="ej: tequila-mezcal"
                 />
               </div>
 

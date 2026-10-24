@@ -1,13 +1,13 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { CatalogService } from './catalog.service';
 
-@Controller('api/v1/categories')
+@Controller('categories')
 export class CategoriesController {
   constructor(private readonly catalogService: CatalogService) {}
 
   @Get()
-  async getCategories() {
-    const categories = await this.catalogService.getCategories(true);
+  async getCategories(@Query('store_id') storeId?: string) {
+    const categories = await this.catalogService.getCategories(true, storeId);
     return {
       status: 'success',
       data: categories,

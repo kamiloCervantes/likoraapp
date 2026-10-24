@@ -14,6 +14,12 @@ import { EmailModule } from './common/email/email.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { CartModule } from './cart/cart.module';
+import { StoresModule } from './stores/stores.module';
+import { MapsModule } from './common/maps/maps.module';
+import { PaymentsModule } from './common/payments/payments.module';
+import { PromotionsModule } from './promotions/promotions.module';
+import { TrackingModule } from './tracking/tracking.module';
+import { DeliveriesModule } from './deliveries/deliveries.module';
 
 import { User } from './users/entities/user.entity';
 import { FederatedIdentity } from './auth/entities/federated-identity.entity';
@@ -26,6 +32,13 @@ import { Category } from './catalog/entities/category.entity';
 import { Product } from './catalog/entities/product.entity';
 import { Cart } from './cart/entities/cart.entity';
 import { CartItem } from './cart/entities/cart-item.entity';
+import { Store } from './stores/entities/store.entity';
+import { MapsConfig } from './common/maps/entities/maps-config.entity';
+import { PaymentConfig } from './common/payments/entities/payment-config.entity';
+import { PaymentTransaction } from './common/payments/entities/payment-transaction.entity';
+import { Promotion } from './promotions/entities/promotion.entity';
+import { DriverLocation } from './tracking/entities/driver-location.entity';
+import { DeliveryVerification } from './deliveries/entities/delivery-verification.entity';
 
 @Module({
   imports: [
@@ -54,6 +67,13 @@ import { CartItem } from './cart/entities/cart-item.entity';
           Product,
           Cart,
           CartItem,
+          Store,
+          MapsConfig,
+          PaymentConfig,
+          PaymentTransaction,
+          Promotion,
+          DriverLocation,
+          DeliveryVerification,
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         logging: configService.get<string>('NODE_ENV') === 'development',
@@ -70,6 +90,12 @@ import { CartItem } from './cart/entities/cart-item.entity';
     AddressesModule,
     CatalogModule,
     CartModule,
+    StoresModule,
+    MapsModule,
+    PaymentsModule,
+    PromotionsModule,
+    TrackingModule,
+    DeliveriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

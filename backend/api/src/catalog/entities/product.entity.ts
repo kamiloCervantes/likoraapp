@@ -9,11 +9,20 @@ import {
   Index,
 } from 'typeorm';
 import { Category } from './category.entity';
+import { Store } from '../../stores/entities/store.entity';
 
 @Entity('products')
 export class Product {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Index()
+  @Column({ type: 'uuid', nullable: true, name: 'store_id' })
+  store_id: string | null;
+
+  @ManyToOne(() => Store, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'store_id' })
+  store: Store | null;
 
   @Index()
   @Column({ type: 'uuid', name: 'category_id' })
@@ -22,6 +31,14 @@ export class Product {
   @ManyToOne(() => Category, (category) => category.products, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'category_id' })
   category: Category;
+
+  @Index()
+  @Column({ type: 'uuid', nullable: true, name: 'subcategory_id' })
+  subcategory_id: string | null;
+
+  @ManyToOne(() => Category, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'subcategory_id' })
+  subcategory: Category | null;
 
   @Index({ unique: true, where: 'sku IS NOT NULL' })
   @Column({ type: 'varchar', length: 50, unique: true, nullable: true })
@@ -48,6 +65,15 @@ export class Product {
 
   @Column({ type: 'jsonb', default: [] })
   images: Array<{ url: string; isCover?: boolean; alt?: string }>;
+
+  @Column({ type: 'boolean', default: false, name: 'is_featured' })
+  is_featured: boolean;
+
+  @Column({ type: 'boolean', default: false, name: 'is_offer' })
+  is_offer: boolean;
+
+  @Column({ type: 'numeric', precision: 3, scale: 2, default: 4.8 })
+  rating: number;
 
   @Column({ type: 'boolean', default: true, name: 'is_active' })
   is_active: boolean;

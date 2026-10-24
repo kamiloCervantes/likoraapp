@@ -61,3 +61,7 @@ cd backend/socket_service && npm install && npm run start:dev
 ```bash
 cd apps/admin_web && npm install && npm run dev
 ```
+### Recordar activar el tunel
+
+& "C:\Users\Gateway\AppData\Local\Android\Sdk\platform-tools\adb.exe" reverse tcp:3000 tcp:3000
+& "C:\Users\Gateway\AppData\Local\Android\Sdk\platform-tools\adb.exe" reverse tcp:3001 tcp:3001

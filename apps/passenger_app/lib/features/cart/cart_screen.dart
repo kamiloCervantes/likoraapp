@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_routes.dart';
 import '../../core/services/api_client.dart';
 import '../../data/app_state.dart';
+import '../../core/utils/currency_formatter.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -152,7 +153,7 @@ class _CartScreenState extends State<CartScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '\{item.product.effectivePrice.toStringAsFixed(2)} c/u',
+                                    '${CurrencyFormatter.format(item.product.effectivePrice)} c/u',
                                     style: const TextStyle(color: AppColors.primaryHover, fontSize: 13),
                                   ),
                                   const SizedBox(height: 6),
@@ -173,7 +174,7 @@ class _CartScreenState extends State<CartScreen> {
                                       Padding(
                                         padding: const EdgeInsets.symmetric(horizontal: 10),
                                         child: Text(
-                                          '',
+                                          '${item.quantity}',
                                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                                         ),
                                       ),
@@ -202,7 +203,7 @@ class _CartScreenState extends State<CartScreen> {
                                   onPressed: () => appState.removeFromCart(item.product.id),
                                 ),
                                 Text(
-                                  '\{item.totalPrice.toStringAsFixed(2)}',
+                                  CurrencyFormatter.format(item.totalPrice),
                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                                 ),
                               ],
@@ -227,7 +228,7 @@ class _CartScreenState extends State<CartScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('Subtotal', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                          Text('\{appState.cartSubtotal.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                          Text(CurrencyFormatter.format(appState.cartSubtotal), style: const TextStyle(color: Colors.white, fontSize: 13)),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -236,7 +237,7 @@ class _CartScreenState extends State<CartScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('IVA (16%)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                          Text('\{appState.cartTax.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                          Text(CurrencyFormatter.format(appState.cartTax), style: const TextStyle(color: Colors.white, fontSize: 13)),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -245,7 +246,7 @@ class _CartScreenState extends State<CartScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('Costo de Envío', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                          Text('\{appState.cartShippingFee.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                          Text(CurrencyFormatter.format(appState.cartShippingFee), style: const TextStyle(color: Colors.white, fontSize: 13)),
                         ],
                       ),
                       const Divider(color: AppColors.border, height: 20),
@@ -254,7 +255,7 @@ class _CartScreenState extends State<CartScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Total a Pagar:', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
-                          Text('\{appState.cartTotal.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.primaryHover, fontSize: 20, fontWeight: FontWeight.bold)),
+                          Text(CurrencyFormatter.format(appState.cartTotal), style: const TextStyle(color: AppColors.primaryHover, fontSize: 20, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 16),

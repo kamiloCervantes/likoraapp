@@ -35,18 +35,33 @@ export class CatalogService {
   }
 
   // ================= CATEGORÍAS =================
-  async getCategories(onlyActive = true): Promise<Category[]> {
-    const query = this.categoryRepository.createQueryBuilder('category');
+  async getCategories(onlyActive = true, storeId?: string): Promise<Category[]> {
+    const query = this.categoryRepository
+      .createQueryBuilder('category')
+      .leftJoinAndSelect('category.store', 'store')
+      .leftJoinAndSelect('category.subcategories', 'subcategories')
+      .where('category.parent_id IS NULL');
+
     if (onlyActive) {
-      query.where('category.is_active = :isActive', { isActive: true });
+      query.andWhere('category.is_active = :isActive', { isActive: true });
     }
-    return query.orderBy('category.display_order', 'ASC').addOrderBy('category.name', 'ASC').getMany();
+
+    if (storeId) {
+      query.andWhere('(category.store_id = :storeId OR category.store_id IS NULL)', { storeId });
+    }
+
+    return query
+      .orderBy('category.display_order', 'ASC')
+      .addOrderBy('category.name', 'ASC')
+      .addOrderBy('subcategories.display_order', 'ASC')
+      .addOrderBy('subcategories.name', 'ASC')
+      .getMany();
   }
 
   async getCategoryById(id: string): Promise<Category> {
     const category = await this.categoryRepository.findOne({
       where: { id },
-      relations: ['products'],
+      relations: ['store', 'subcategories', 'products'],
     });
     if (!category) {
       throw new NotFoundException('Categoría no encontrada');
@@ -64,6 +79,7 @@ export class CatalogService {
     const category = this.categoryRepository.create({
       ...dto,
       slug,
+      store_id: dto.store_id || null,
       is_active: dto.is_active !== undefined ? dto.is_active : true,
       display_order: dto.display_order ?? 0,
     });
@@ -75,7 +91,7 @@ export class CatalogService {
     const category = await this.getCategoryById(id);
 
     if (dto.slug || (dto.name && dto.name !== category.name && !dto.slug)) {
-      const newSlug = this.generateSlug(dto.slug || dto.name);
+      const newSlug = this.generateSlug(dto.slug || dto.name!);
       const existing = await this.categoryRepository.findOne({ where: { slug: newSlug } });
       if (existing && existing.id !== id) {
         throw new ConflictException('Ya existe otra categoría con el slug: ' + newSlug);
@@ -83,6 +99,7 @@ export class CatalogService {
       category.slug = newSlug;
     }
 
+    if (dto.store_id !== undefined) category.store_id = dto.store_id || null;
     if (dto.name !== undefined) category.name = dto.name;
     if (dto.description !== undefined) category.description = dto.description;
     if (dto.image_url !== undefined) category.image_url = dto.image_url;
@@ -107,7 +124,7 @@ export class CatalogService {
   async getProductById(id: string): Promise<Product> {
     const product = await this.productRepository.findOne({
       where: { id },
-      relations: ['category'],
+      relations: ['store', 'category', 'subcategory'],
     });
     if (!product) {
       throw new NotFoundException('Producto no encontrado');
@@ -134,6 +151,7 @@ export class CatalogService {
     const product = this.productRepository.create({
       ...dto,
       slug,
+      store_id: dto.store_id || null,
       is_active: dto.is_active !== undefined ? dto.is_active : true,
       stock_quantity: dto.stock_quantity ?? 0,
       images: dto.images ?? [],
@@ -159,7 +177,7 @@ export class CatalogService {
     }
 
     if (dto.slug || (dto.name && dto.name !== product.name && !dto.slug)) {
-      const newSlug = this.generateSlug(dto.slug || dto.name);
+      const newSlug = this.generateSlug(dto.slug || dto.name!);
       const existing = await this.productRepository.findOne({ where: { slug: newSlug } });
       if (existing && existing.id !== id) {
         throw new ConflictException('Ya existe un producto con el slug: ' + newSlug);
@@ -167,12 +185,16 @@ export class CatalogService {
       product.slug = newSlug;
     }
 
+    if (dto.store_id !== undefined) product.store_id = dto.store_id || null;
+    if (dto.subcategory_id !== undefined) product.subcategory_id = dto.subcategory_id || null;
     if (dto.name !== undefined) product.name = dto.name;
     if (dto.description !== undefined) product.description = dto.description;
     if (dto.price !== undefined) product.price = dto.price;
     if (dto.compare_at_price !== undefined) product.compare_at_price = dto.compare_at_price;
     if (dto.stock_quantity !== undefined) product.stock_quantity = dto.stock_quantity;
     if (dto.images !== undefined) product.images = dto.images;
+    if (dto.is_featured !== undefined) product.is_featured = dto.is_featured;
+    if (dto.is_offer !== undefined) product.is_offer = dto.is_offer;
     if (dto.is_active !== undefined) product.is_active = dto.is_active;
 
     return this.productRepository.save(product);
@@ -193,21 +215,74 @@ export class CatalogService {
     await this.productRepository.remove(product);
   }
 
-  // ================= BÚSQUEDA Y LISTADO DE PRODUCTOS =================
+  // Algoritmo de Haversine para cálculo de distancia ortodrómica en kilómetros
+  private calculateHaversineDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Number((R * c).toFixed(2));
+  }
+
+  // ================= BÚSQUEDA Y LISTADO DE PRODUCTOS MULTI-TIENDA =================
   async searchProducts(queryDto: ProductSearchQueryDto, onlyActive = true) {
-    const { q, category_id, min_price, max_price, page = 1, limit = 20, sort = 'newest' } = queryDto;
+    const {
+      store_id,
+      q,
+      category_id,
+      subcategory_id,
+      is_featured,
+      is_offer,
+      min_price,
+      max_price,
+      user_lat,
+      user_lng,
+      expand_stores = true,
+      page = 1,
+      limit = 50,
+      sort = 'newest',
+    } = queryDto;
     const skip = (page - 1) * limit;
 
     const qb: SelectQueryBuilder<Product> = this.productRepository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.category', 'category');
+      .leftJoinAndSelect('product.store', 'store')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.subcategory', 'subcategory');
 
     if (onlyActive) {
       qb.where('product.is_active = :isActive', { isActive: true });
     }
 
+    if (store_id) {
+      qb.andWhere('product.store_id = :storeId', { storeId: store_id });
+    }
+
     if (category_id) {
       qb.andWhere('product.category_id = :categoryId', { categoryId: category_id });
+    }
+
+    if (subcategory_id) {
+      qb.andWhere('product.subcategory_id = :subcategoryId', { subcategoryId: subcategory_id });
+    }
+
+    if (is_featured !== undefined) {
+      qb.andWhere('product.is_featured = :isFeatured', { isFeatured: is_featured });
+    }
+
+    if (is_offer !== undefined) {
+      qb.andWhere('product.is_offer = :isOffer', { isOffer: is_offer });
     }
 
     if (min_price !== undefined) {
@@ -247,16 +322,132 @@ export class CatalogService {
     const [items, totalItems] = await qb.getManyAndCount();
     const totalPages = Math.ceil(totalItems / limit) || 1;
 
+    // SI HAY RESULTADOS EN LA TIENDA SELECCIONADA, O NO SE BUSCÓ POR PALABRA CLAVE
+    if (items.length > 0 || !q || !q.trim() || !store_id || expand_stores === false) {
+      const enrichedItems = items.map((product) => {
+        let storeDistanceKm: number | null = null;
+        let storeDistanceFormatted: string | null = null;
+        if (user_lat && user_lng && product.store?.latitude && product.store?.longitude) {
+          storeDistanceKm = this.calculateHaversineDistance(
+            Number(user_lat),
+            Number(user_lng),
+            Number(product.store.latitude),
+            Number(product.store.longitude),
+          );
+          storeDistanceFormatted =
+            storeDistanceKm < 1 ? `${Math.round(storeDistanceKm * 1000)} m` : `${storeDistanceKm.toFixed(1)} km`;
+        }
+        return {
+          ...product,
+          store_distance_km: storeDistanceKm,
+          store_distance_formatted: storeDistanceFormatted,
+        };
+      });
+
+      return {
+        items: enrichedItems,
+        meta: {
+          currentPage: page,
+          perPage: limit,
+          totalItems,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+          matched_in_selected_store: items.length > 0 && !!store_id,
+          expanded_to_other_stores: false,
+          selected_store_id: store_id || null,
+        },
+      };
+    }
+
+    // SI NO SE ENCONTRÓ EL PRODUCTO EN LA TIENDA ACTUAL:
+    // BUSCAR EN LAS DEMÁS TIENDAS Y PRIORIZAR POR LA TIENDA MÁS CERCANA
+    const otherQb: SelectQueryBuilder<Product> = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.store', 'store')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.subcategory', 'subcategory');
+
+    if (onlyActive) {
+      otherQb.where('product.is_active = :isActive', { isActive: true });
+    }
+
+    otherQb.andWhere('product.store_id != :storeId', { storeId: store_id });
+
+    if (category_id) {
+      otherQb.andWhere('product.category_id = :categoryId', { categoryId: category_id });
+    }
+
+    if (subcategory_id) {
+      otherQb.andWhere('product.subcategory_id = :subcategoryId', { subcategoryId: subcategory_id });
+    }
+
+    const searchTerm = '%' + q.trim().toLowerCase() + '%';
+    otherQb.andWhere(
+      '(LOWER(product.name) LIKE :searchTerm OR LOWER(product.description) LIKE :searchTerm OR LOWER(product.sku) LIKE :searchTerm)',
+      { searchTerm },
+    );
+
+    const otherItems = await otherQb.getMany();
+
+    if (otherItems.length === 0) {
+      return {
+        items: [],
+        meta: {
+          currentPage: page,
+          perPage: limit,
+          totalItems: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+          matched_in_selected_store: false,
+          expanded_to_other_stores: true,
+          selected_store_id: store_id,
+        },
+      };
+    }
+
+    // Obtener coordenadas de referencia (usuario o centro predeterminado)
+    const refLat = user_lat !== undefined ? Number(user_lat) : 6.208571;
+    const refLng = user_lng !== undefined ? Number(user_lng) : -75.568434;
+
+    // Calcular distancia a la tienda de cada producto
+    const itemsWithDistance = otherItems.map((prod) => {
+      const sLat = Number(prod.store?.latitude || 0);
+      const sLng = Number(prod.store?.longitude || 0);
+      const dist = (sLat !== 0 && sLng !== 0)
+        ? this.calculateHaversineDistance(refLat, refLng, sLat, sLng)
+        : 999.0;
+      return {
+        ...prod,
+        store_distance_km: dist,
+        store_distance_formatted: dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`,
+      };
+    });
+
+    // PRIORIDAD: Ordenar por distancia de la tienda más cercana ascendentemente
+    itemsWithDistance.sort((a, b) => a.store_distance_km - b.store_distance_km);
+
+    const paginated = itemsWithDistance.slice(skip, skip + limit);
+    const nearestStore = paginated[0]?.store;
+
     return {
-      items,
+      items: paginated,
       meta: {
         currentPage: page,
         perPage: limit,
-        totalItems,
-        totalPages,
-        hasNextPage: page < totalPages,
+        totalItems: itemsWithDistance.length,
+        totalPages: Math.ceil(itemsWithDistance.length / limit) || 1,
+        hasNextPage: page < Math.ceil(itemsWithDistance.length / limit),
         hasPrevPage: page > 1,
+        matched_in_selected_store: false,
+        expanded_to_other_stores: true,
+        selected_store_id: store_id,
+        nearest_store_id: nearestStore?.id || null,
+        nearest_store_name: nearestStore?.name || null,
+        nearest_store_distance: paginated[0]?.store_distance_formatted || null,
       },
     };
   }
+
 }

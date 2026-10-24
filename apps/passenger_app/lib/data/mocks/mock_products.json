@@ -1,92 +1,557 @@
 [
   {
-    "id": "prod-101",
-    "title": "Vino Tinto Reserva",
-    "description": "Vino tinto de cuerpo entero con notas de frutos rojos maduros, vainilla y roble ahumado. Crianza de 12 meses en barrica francesa.",
-    "price": 30.00,
-    "discount_price": 20.00,
-    "rating": 4.8,
-    "category_id": "cat-vinos",
-    "subcategory_id": "sub-vinos-tintos",
-    "images": [
-      "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=500&q=80"
-    ],
-    "is_featured": true,
-    "is_offer": true
-  },
-  {
-    "id": "prod-102",
-    "title": "Cerveza IPA Artesanal",
-    "description": "Cerveza de estilo India Pale Ale con un intenso aroma cítrico, notas de lúpulo fresco y un amargor equilibrado.",
-    "price": 12.00,
-    "discount_price": 8.00,
-    "rating": 4.6,
-    "category_id": "cat-cervezas",
-    "subcategory_id": "sub-cervezas-artesanales",
-    "images": [
-      "https://images.unsplash.com/photo-1608270586620-248524c67de9?w=500&q=80"
-    ],
-    "is_featured": true,
-    "is_offer": true
-  },
-  {
-    "id": "prod-103",
-    "title": "Whisky Escocés 12 Años",
-    "description": "Whisky de malta envejecido en barricas de jerez. Suave en boca con matices de miel, manzana verde y toque sutil de turba.",
-    "price": 60.00,
-    "discount_price": 45.00,
+    "id": "c0000000-0000-0000-0000-000000000001",
+    "title": "Don Julio Blanco Tequila (750ml)",
+    "description": "Tequila blanco 100% de agave azul. Fresco con aromas cítricos de limón y lima, toque ligeramente dulce y final limpio. Ideal para Margaritas de alta gama.",
+    "price": 52,
+    "discount_price": 58,
     "rating": 4.9,
-    "category_id": "cat-whiskys",
-    "subcategory_id": "sub-whiskys-single-malt",
+    "category_id": "a0000000-0000-0000-0000-000000000001",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000001",
     "images": [
-      "https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=500&q=80"
-    ],
-    "is_featured": true,
-    "is_offer": true
-  },
-  {
-    "id": "prod-104",
-    "title": "Tequila Reposado Premium",
-    "description": "100% agave azul, madurado 8 meses en barricas de roble blanco americano. Aroma especiado con toques de agave cocido.",
-    "price": 42.00,
-    "discount_price": 35.00,
-    "rating": 4.7,
-    "category_id": "cat-licores",
-    "subcategory_id": "sub-tequilas",
-    "images": [
-      "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=500&q=80"
+      "https://images.unsplash.com/photo-1527061011665-3652c757a4d4?w=600&q=80"
     ],
     "is_featured": true,
     "is_offer": false
   },
   {
-    "id": "prod-105",
-    "title": "Ginebra Botánica Extra",
-    "description": "Destilada con 12 botánicos seleccionados incluyendo enebro, piel de naranja amarga, cilantro y lavanda.",
-    "price": 38.00,
+    "id": "c0000000-0000-0000-0000-000000000002",
+    "title": "Casamigos Reposado Tequila (750ml)",
+    "description": "Envejecido durante 7 meses en barricas de roble blanco americano. Notas suaves de caramelo, cacao y roble tostado con final sedoso.",
+    "price": 64,
+    "discount_price": 72,
+    "rating": 4.8,
+    "category_id": "a0000000-0000-0000-0000-000000000001",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000002",
+    "images": [
+      "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": true
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000003",
+    "title": "Patrón Añejo Tequila (750ml)",
+    "description": "Añejado por más de 12 meses en barricas de roble blanco francés y húngaro. Perfil cálido con toques de vainilla, pasas y miel.",
+    "price": 69,
     "discount_price": null,
-    "rating": 4.5,
-    "category_id": "cat-licores",
-    "subcategory_id": "sub-ginebras",
+    "rating": 4.8,
+    "category_id": "a0000000-0000-0000-0000-000000000001",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000003",
     "images": [
-      "https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=500&q=80"
+      "https://images.unsplash.com/photo-1582819509237-d5b75f20ff7a?w=600&q=80"
     ],
     "is_featured": false,
     "is_offer": false
   },
   {
-    "id": "prod-106",
-    "title": "Vino Blanco Chardonnay",
-    "description": "Vino fresco y frutal con equilibrio perfecto entre acidez cítrica y untuosidad de la fruta madura.",
-    "price": 24.00,
-    "discount_price": 18.00,
-    "rating": 4.4,
-    "category_id": "cat-vinos",
-    "subcategory_id": "sub-vinos-blancos",
+    "id": "c0000000-0000-0000-0000-000000000004",
+    "title": "Don Julio 70 Cristalino Añejo (750ml)",
+    "description": "El pionero de los tequilas cristalinos. Añejado 18 meses y filtrado con carbón activado para restaurar la pureza cítrica del agave.",
+    "price": 78,
+    "discount_price": 88,
+    "rating": 5,
+    "category_id": "a0000000-0000-0000-0000-000000000001",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000004",
     "images": [
-      "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=500&q=80"
+      "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": true
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000005",
+    "title": "400 Conejos Mezcal Artesanal Espadín (750ml)",
+    "description": "Elaborado artesanalmente en Oaxaca a partir de agave espadín cocido en hornos cónicos de leña. Aromas suaves de humo, madera y agave maduro.",
+    "price": 38,
+    "discount_price": 44,
+    "rating": 4.7,
+    "category_id": "a0000000-0000-0000-0000-000000000001",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000005",
+    "images": [
+      "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000006",
+    "title": "Jack Daniel's Old No. 7 Tennessee Whiskey (750ml)",
+    "description": "Filtrado gota a gota a través de 3 metros de carbón de arce de azúcar y madurado en barricas de roble americano hechas a mano.",
+    "price": 28,
+    "discount_price": 32,
+    "rating": 4.8,
+    "category_id": "a0000000-0000-0000-0000-000000000002",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000006",
+    "images": [
+      "https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000007",
+    "title": "Maker's Mark Kentucky Straight Bourbon (750ml)",
+    "description": "Bourbon artesanal destilado con trigo rojo de invierno en lugar de centeno, brindando un sabor extraordinariamente suave y notas de caramelo.",
+    "price": 35,
+    "discount_price": null,
+    "rating": 4.7,
+    "category_id": "a0000000-0000-0000-0000-000000000002",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000006",
+    "images": [
+      "https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000008",
+    "title": "Bulleit Rye 95 American Whiskey (750ml)",
+    "description": "Elaborado con un 95% de grano de centeno. Perfil especiado y limpio con matices de cereza, vainilla y final de roble picante.",
+    "price": 36,
+    "discount_price": 42,
+    "rating": 4.6,
+    "category_id": "a0000000-0000-0000-0000-000000000002",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000007",
+    "images": [
+      "https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=600&q=80"
     ],
     "is_featured": false,
     "is_offer": true
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000009",
+    "title": "Johnnie Walker Black Label 12 Años (750ml)",
+    "description": "Blended Scotch icónico envejecido un mínimo de 12 años con whiskies de las 4 esquinas de Escocia. Notas de fruta dulce, vainilla y humo de turba.",
+    "price": 42,
+    "discount_price": 48,
+    "rating": 4.9,
+    "category_id": "a0000000-0000-0000-0000-000000000002",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000008",
+    "images": [
+      "https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": true
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000010",
+    "title": "Buchanan's DeLuxe 12 Años Blended Scotch (750ml)",
+    "description": "Whisky escocés suave, sutil y afrutado con notas de naranja, chocolate y roble dulce.",
+    "price": 40,
+    "discount_price": null,
+    "rating": 4.8,
+    "category_id": "a0000000-0000-0000-0000-000000000002",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000008",
+    "images": [
+      "https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000011",
+    "title": "Jameson Irish Whiskey (750ml)",
+    "description": "Triple destilación tradicional irlandesa para máxima suavidad. Toques de jerez, vainilla y notas florales delicadas.",
+    "price": 26,
+    "discount_price": 30,
+    "rating": 4.7,
+    "category_id": "a0000000-0000-0000-0000-000000000002",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000009",
+    "images": [
+      "https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000012",
+    "title": "Hibiki Japanese Harmony Whisky (700ml)",
+    "description": "Obra maestra de Suntory. Armonía refinada con aromas de rosa, lichi, romero y toques sutiles de madera de Mizunara (roble japonés).",
+    "price": 115,
+    "discount_price": 130,
+    "rating": 5,
+    "category_id": "a0000000-0000-0000-0000-000000000002",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000010",
+    "images": [
+      "https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000013",
+    "title": "Grey Goose Vodka Francés Premium (750ml)",
+    "description": "Destilado en Francia con trigo blando de invierno de Picardía y agua pura de manantial de Gensac-la-Pallue. Textura sedosa excepcional.",
+    "price": 38,
+    "discount_price": 45,
+    "rating": 4.9,
+    "category_id": "a0000000-0000-0000-0000-000000000003",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000011",
+    "images": [
+      "https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000014",
+    "title": "Tito's Handmade Vodka Texas (750ml)",
+    "description": "Destilado en alambiques de cobre por lotes a partir de maíz 100% natural. Certificado sin gluten y de final excepcionalmente limpio.",
+    "price": 24,
+    "discount_price": null,
+    "rating": 4.8,
+    "category_id": "a0000000-0000-0000-0000-000000000003",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000011",
+    "images": [
+      "https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000015",
+    "title": "Absolut Citron Vodka Saborizado (750ml)",
+    "description": "El vodka favorito para preparar el clásico Cosmopolitan. Infusionado exclusivamente con esencias naturales de limón y lima sin azúcares añadidos.",
+    "price": 24,
+    "discount_price": 28,
+    "rating": 4.7,
+    "category_id": "a0000000-0000-0000-0000-000000000003",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000012",
+    "images": [
+      "https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": true
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000016",
+    "title": "Catena Zapata Malbec Mendoza Reserva (750ml)",
+    "description": "Vino tinto insignia argentino de viñedos de altura en Mendoza. Notas intensas de ciruela negra, vainilla, especias y taninos redondos aterciopelados.",
+    "price": 28,
+    "discount_price": 34,
+    "rating": 4.9,
+    "category_id": "a0000000-0000-0000-0000-000000000004",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000013",
+    "images": [
+      "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": true
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000017",
+    "title": "Casillero del Diablo Cabernet Sauvignon (750ml)",
+    "description": "Vino tinto chileno de Valle Central con notas de cereza madura, grosellas negras, café tostado y roble americano.",
+    "price": 15,
+    "discount_price": null,
+    "rating": 4.6,
+    "category_id": "a0000000-0000-0000-0000-000000000004",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000013",
+    "images": [
+      "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000018",
+    "title": "Kim Crawford Marlborough Sauvignon Blanc (750ml)",
+    "description": "Vino blanco de Nueva Zelanda mundialmente aclamado. Explosión cítrica de maracuyá, pomelo y acidez crujiente refrescante.",
+    "price": 22,
+    "discount_price": 26,
+    "rating": 4.8,
+    "category_id": "a0000000-0000-0000-0000-000000000004",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000014",
+    "images": [
+      "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000019",
+    "title": "Whispering Angel Côtes de Provence Rosé (750ml)",
+    "description": "El referente mundial del vino rosado de la Provenza francesa. Rosa pálido, aromas de frutos rojos frescos y final sedoso.",
+    "price": 27,
+    "discount_price": null,
+    "rating": 4.8,
+    "category_id": "a0000000-0000-0000-0000-000000000004",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000015",
+    "images": [
+      "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000020",
+    "title": "Moët & Chandon Impérial Brut Champagne (750ml)",
+    "description": "El champagne icónico de la casa fundada en 1743. Elegante mezcla de Pinot Noir, Meunier y Chardonnay con burbuja fina y persistente.",
+    "price": 58,
+    "discount_price": 65,
+    "rating": 5,
+    "category_id": "a0000000-0000-0000-0000-000000000004",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000016",
+    "images": [
+      "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000021",
+    "title": "Taylor's Port Tawny 10 Años (750ml)",
+    "description": "Vino de Oporto fortificado envejecido en barricas de roble sazonadas. Aromas intensos de higos, nueces y pasas.",
+    "price": 34,
+    "discount_price": null,
+    "rating": 4.7,
+    "category_id": "a0000000-0000-0000-0000-000000000004",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000017",
+    "images": [
+      "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000022",
+    "title": "Bacardí Carta Blanca Superior Rum (750ml)",
+    "description": "Ron blanco clásico creado en 1862. Añejado en barricas de roble blanco y filtrado dos veces con carbón para lograr notas florales y frutales ligeras.",
+    "price": 17,
+    "discount_price": null,
+    "rating": 4.7,
+    "category_id": "a0000000-0000-0000-0000-000000000005",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000018",
+    "images": [
+      "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000023",
+    "title": "Ron Zacapa Centenario 23 Solera Gran Reserva (750ml)",
+    "description": "Ron de las tierras altas de Guatemala añejado por sistema de solera a 2300m sobre el nivel del mar. Complejas notas de caramelo, miel y roble.",
+    "price": 54,
+    "discount_price": 62,
+    "rating": 5,
+    "category_id": "a0000000-0000-0000-0000-000000000005",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000019",
+    "images": [
+      "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": true
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000024",
+    "title": "Ron Medellín Extra Añejo 8 Años (750ml)",
+    "description": "Ron colombiano añejado pacientemente durante 8 años en barriles de roble americano. Notas cálidas de vainilla y miel.",
+    "price": 24,
+    "discount_price": null,
+    "rating": 4.8,
+    "category_id": "a0000000-0000-0000-0000-000000000005",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000019",
+    "images": [
+      "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000025",
+    "title": "Captain Morgan Original Spiced Gold (750ml)",
+    "description": "Ron especiado caribeño infusionado con vainilla natural, azúcar morena y especias cálidas. Perfecto con cola y limón.",
+    "price": 19,
+    "discount_price": 22,
+    "rating": 4.7,
+    "category_id": "a0000000-0000-0000-0000-000000000005",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000020",
+    "images": [
+      "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000026",
+    "title": "Hennessy VS Very Special Cognac (750ml)",
+    "description": "El cognac más popular del mundo. Ensamblado con más de 40 aguardientes eaux-de-vie envejecidos en barricas nuevas de roble francés.",
+    "price": 48,
+    "discount_price": 55,
+    "rating": 4.9,
+    "category_id": "a0000000-0000-0000-0000-000000000006",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000021",
+    "images": [
+      "https://images.unsplash.com/photo-1582819509237-d5b75f20ff7a?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000027",
+    "title": "Rémy Martin VSOP Fine Champagne Cognac (750ml)",
+    "description": "Destilado exclusivamente de uvas de Grande y Petite Champagne. Notas elegantes de albaricoque maduro, vainilla y regaliz.",
+    "price": 65,
+    "discount_price": null,
+    "rating": 4.8,
+    "category_id": "a0000000-0000-0000-0000-000000000006",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000022",
+    "images": [
+      "https://images.unsplash.com/photo-1582819509237-d5b75f20ff7a?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000028",
+    "title": "Torres 10 Gran Reserva Brandy Español (700ml)",
+    "description": "Brandy de solera añejado en barricas de roble americano en el Penedès. Notas aromáticas de canela, vainilla y frutos secos.",
+    "price": 22,
+    "discount_price": 26,
+    "rating": 4.7,
+    "category_id": "a0000000-0000-0000-0000-000000000006",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000024",
+    "images": [
+      "https://images.unsplash.com/photo-1582819509237-d5b75f20ff7a?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": true
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000029",
+    "title": "Corona Extra Cerveza Clara (Pack 6 x 355ml)",
+    "description": "La cerveza mexicana más vendida del mundo. Ligera, refrescante, balanceada con notas de malta y lúpulo. Servir con rodaja de lima.",
+    "price": 11.5,
+    "discount_price": null,
+    "rating": 4.8,
+    "category_id": "a0000000-0000-0000-0000-000000000007",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000025",
+    "images": [
+      "https://images.unsplash.com/photo-1608270586620-248524c67de9?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000030",
+    "title": "Heineken Original Lager Premium (Pack 6 x 330ml)",
+    "description": "Lager holandesa 100% de malta pura fermentada con levadura tipo A patentada. Sabor balanceado y refrescante.",
+    "price": 12,
+    "discount_price": 14,
+    "rating": 4.7,
+    "category_id": "a0000000-0000-0000-0000-000000000007",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000025",
+    "images": [
+      "https://images.unsplash.com/photo-1608270586620-248524c67de9?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": true
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000031",
+    "title": "Sierra Nevada Hazy Little Thing IPA (Pack 6 x 355ml)",
+    "description": "Cerveza artesanal estilo New England Hazy IPA sin filtrar. Aromas tropicales jugosos a lúpulos Citra y Mosaic.",
+    "price": 14,
+    "discount_price": null,
+    "rating": 4.8,
+    "category_id": "a0000000-0000-0000-0000-000000000007",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000026",
+    "images": [
+      "https://images.unsplash.com/photo-1608270586620-248524c67de9?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000032",
+    "title": "High Noon Sun Sips Vodka Hard Seltzer (Pack 8 x 355ml)",
+    "description": "Elaborado con vodka real destilado, zumo de fruta natural y agua con gas. Sabores piña, sandía, pomelo y cereza negra. Sin azúcar añadida.",
+    "price": 19.99,
+    "discount_price": 22.99,
+    "rating": 4.9,
+    "category_id": "a0000000-0000-0000-0000-000000000007",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000027",
+    "images": [
+      "https://images.unsplash.com/photo-1608270586620-248524c67de9?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": true
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000033",
+    "title": "Aguardiente Antioqueño Tapa Azul Sin Azúcar (750ml)",
+    "description": "El licor tradicional número 1 de Colombia. Destilado con alcoholes extra neutros y esencias de anís natural, 0% azúcar añadida.",
+    "price": 18,
+    "discount_price": null,
+    "rating": 5,
+    "category_id": "a0000000-0000-0000-0000-000000000008",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000028",
+    "images": [
+      "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000034",
+    "title": "Baileys Original Irish Cream Liqueur (750ml)",
+    "description": "La crema irlandesa original que combina whisky irlandés triple destilado, crema de leche fresca y aromas de cacao y vainilla.",
+    "price": 23,
+    "discount_price": 26,
+    "rating": 4.9,
+    "category_id": "a0000000-0000-0000-0000-000000000008",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000029",
+    "images": [
+      "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000035",
+    "title": "Kahlúa Original Coffee Liqueur (750ml)",
+    "description": "Licor de café mexicano premium elaborado con granos de café 100% arábica y ron de caña. Esencial para White Russian y Espresso Martini.",
+    "price": 21,
+    "discount_price": null,
+    "rating": 4.7,
+    "category_id": "a0000000-0000-0000-0000-000000000008",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000029",
+    "images": [
+      "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=80"
+    ],
+    "is_featured": false,
+    "is_offer": false
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000036",
+    "title": "Jägermeister Herbal Liqueur (750ml)",
+    "description": "Legendario licor digestivo alemán macerado con 56 hierbas, flores, raíces y frutas seleccionadas. Servir a -18°C.",
+    "price": 27,
+    "discount_price": 31,
+    "rating": 4.9,
+    "category_id": "a0000000-0000-0000-0000-000000000008",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000030",
+    "images": [
+      "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": true
+  },
+  {
+    "id": "c0000000-0000-0000-0000-000000000037",
+    "title": "Aperol Aperitivo Italiano (750ml)",
+    "description": "El corazón del cóctel Aperol Spritz. Receta secreta de Padua con infusiones de naranjas dulces y amargas, hierbas aromáticas y ruibarbo.",
+    "price": 25,
+    "discount_price": null,
+    "rating": 4.8,
+    "category_id": "a0000000-0000-0000-0000-000000000008",
+    "subcategory_id": "b0000000-0000-0000-0000-000000000030",
+    "images": [
+      "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=80"
+    ],
+    "is_featured": true,
+    "is_offer": false
   }
 ]

@@ -1,6 +1,10 @@
-import { IsString, IsOptional, IsInt, IsBoolean, MaxLength, Min } from 'class-validator';
+import { IsString, IsOptional, IsInt, IsBoolean, MaxLength, Min, IsUUID } from 'class-validator';
 
 export class UpdateCategoryDto {
+  @IsUUID('all')
+  @IsOptional()
+  store_id?: string;
+
   @IsString()
   @IsOptional()
   @MaxLength(100)

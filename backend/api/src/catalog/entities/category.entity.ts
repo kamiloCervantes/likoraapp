@@ -5,14 +5,25 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
   Index,
 } from 'typeorm';
 import { Product } from './product.entity';
+import { Store } from '../../stores/entities/store.entity';
 
 @Entity('categories')
 export class Category {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Index()
+  @Column({ type: 'uuid', nullable: true, name: 'store_id' })
+  store_id: string | null;
+
+  @ManyToOne(() => Store, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'store_id' })
+  store: Store | null;
 
   @Column({ type: 'varchar', length: 100 })
   name: string;
@@ -26,6 +37,19 @@ export class Category {
 
   @Column({ type: 'text', nullable: true, name: 'image_url' })
   image_url: string | null;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  icon: string | null;
+
+  @Column({ type: 'uuid', nullable: true, name: 'parent_id' })
+  parent_id: string | null;
+
+  @ManyToOne(() => Category, (category) => category.subcategories, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'parent_id' })
+  parent: Category | null;
+
+  @OneToMany(() => Category, (category) => category.parent)
+  subcategories: Category[];
 
   @Column({ type: 'int', default: 0, name: 'display_order' })
   display_order: number;

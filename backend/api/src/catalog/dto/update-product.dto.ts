@@ -11,9 +11,17 @@ import {
 } from 'class-validator';
 
 export class UpdateProductDto {
-  @IsUUID('4')
+  @IsUUID('all')
+  @IsOptional()
+  store_id?: string;
+
+  @IsUUID('all')
   @IsOptional()
   category_id?: string;
+
+  @IsUUID('all')
+  @IsOptional()
+  subcategory_id?: string;
 
   @IsString()
   @IsOptional()
@@ -52,6 +60,14 @@ export class UpdateProductDto {
   @IsArray()
   @IsOptional()
   images?: Array<{ url: string; isCover?: boolean; alt?: string }>;
+
+  @IsBoolean()
+  @IsOptional()
+  is_featured?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  is_offer?: boolean;
 
   @IsBoolean()
   @IsOptional()

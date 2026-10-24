@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
+import '../../core/services/api_client.dart';
 
 class CartCostSummary {
   final double subtotal;
@@ -17,72 +18,95 @@ class CartCostSummary {
   });
 
   factory CartCostSummary.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic v) {
+      if (v == null) return 0.0;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? 0.0;
+      return 0.0;
+    }
+
     return CartCostSummary(
-      subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
-      tax: (json['tax'] as num?)?.toDouble() ?? 0.0,
-      deliveryFee: (json['delivery_fee'] as num?)?.toDouble() ?? 0.0,
-      total: (json['total'] as num?)?.toDouble() ?? 0.0,
-      totalItems: (json['total_items'] as num?)?.toInt() ?? 0,
+      subtotal: parseDouble(json['subtotal']),
+      tax: parseDouble(json['tax']),
+      deliveryFee: parseDouble(json['delivery_fee'] ?? json['deliveryFee']),
+      total: parseDouble(json['total']),
+      totalItems: (json['total_items'] ?? json['totalItems'] as num?)?.toInt() ?? 0,
     );
   }
 }
 
 class CartRepository {
-  final String baseUrl;
-
-  CartRepository({this.baseUrl = 'http://localhost:3000/api/v1'});
-
   Future<Map<String, dynamic>?> getCart() async {
     try {
-      final res = await http.get(Uri.parse('/cart'));
-      if (res.statusCode == 200) {
-        return jsonDecode(res.body)['data'];
+      if (ApiClient.isAuthenticated) {
+        final res = await ApiClient.get('/cart');
+        if (res.statusCode == 200) {
+          final body = jsonDecode(res.body);
+          return body['data'];
+        }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('⚠️ [CartRepository] Error al obtener carrito: ');
+    }
     return null;
   }
 
   Future<bool> addItem(String productId, int quantity) async {
     try {
-      final res = await http.post(
-        Uri.parse('/cart/items'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'product_id': productId, 'quantity': quantity}),
-      );
-      return res.statusCode == 200 || res.statusCode == 201;
-    } catch (_) {
-      return false;
+      if (ApiClient.isAuthenticated) {
+        final res = await ApiClient.post(
+          '/cart/items',
+          body: {
+            'productId': productId,
+            'quantity': quantity,
+          },
+        );
+        final success = res.statusCode == 200 || res.statusCode == 201;
+        debugPrint('🛒 [CartRepository] addItem API status: ');
+        return success;
+      }
+    } catch (e) {
+      debugPrint('⚠️ [CartRepository] Error al agregar producto al carrito: ');
     }
+    return false;
   }
 
   Future<bool> updateItemQuantity(String itemId, int quantity) async {
     try {
-      final res = await http.put(
-        Uri.parse('/cart/items/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'quantity': quantity}),
-      );
-      return res.statusCode == 200;
-    } catch (_) {
-      return false;
+      if (ApiClient.isAuthenticated) {
+        final res = await ApiClient.put(
+          '/cart/items/',
+          body: {'quantity': quantity},
+        );
+        return res.statusCode == 200;
+      }
+    } catch (e) {
+      debugPrint('⚠️ [CartRepository] Error al actualizar cantidad: ');
     }
+    return false;
   }
 
   Future<bool> removeItem(String itemId) async {
     try {
-      final res = await http.delete(Uri.parse('/cart/items/'));
-      return res.statusCode == 200;
-    } catch (_) {
-      return false;
+      if (ApiClient.isAuthenticated) {
+        final res = await ApiClient.delete('/cart/items/');
+        return res.statusCode == 200;
+      }
+    } catch (e) {
+      debugPrint('⚠️ [CartRepository] Error al eliminar item del carrito: ');
     }
+    return false;
   }
 
   Future<bool> clearCart() async {
     try {
-      final res = await http.delete(Uri.parse('/cart/clear'));
-      return res.statusCode == 200;
-    } catch (_) {
-      return false;
+      if (ApiClient.isAuthenticated) {
+        final res = await ApiClient.delete('/cart/clear');
+        return res.statusCode == 200;
+      }
+    } catch (e) {
+      debugPrint('⚠️ [CartRepository] Error al vaciar carrito: ');
     }
+    return false;
   }
 }

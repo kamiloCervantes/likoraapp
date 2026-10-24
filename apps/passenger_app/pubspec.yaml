@@ -21,6 +21,7 @@ dependencies:
     path: ../../packages/shared_ui
   realtime_client:
     path: ../../packages/realtime_client
+  google_maps_flutter: ^2.18.1
 
 dev_dependencies:
   flutter_test:

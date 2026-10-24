@@ -1,3 +1,7 @@
+import 'models/store_model.dart';
+import 'models/promotion_model.dart';
+import '../features/offers/promotion_repository.dart';
+import '../features/stores/store_repository.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'models/user_model.dart';
@@ -16,11 +20,20 @@ class AppState extends ChangeNotifier {
   bool isLoading = true;
 
   final AddressRepository addressRepository = AddressRepository();
+  final StoreRepository storeRepository = StoreRepository();
+  StoreModel? activeStore;
+  StoreModel? nearestStore;
+  List<StoreModel> nearbyStores = [];
+  bool isCalculatingNearestStore = false;
+
   final CatalogRepository catalogRepository = CatalogRepository();
   final CartRepository cartRepository = CartRepository();
+  final PromotionRepository promotionRepository = PromotionRepository();
+  List<PromotionModel> promotions = [];
 
   UserModel? currentUser;
   List<ProductModel> products = [];
+  String? selectedStoreId;
   List<CategoryModel> categories = [];
   List<OrderModel> orders = [];
   List<AddressModel> addresses = [];
@@ -29,6 +42,12 @@ class AppState extends ChangeNotifier {
 
   int currentNavIndex = 0;
   String searchQuery = '';
+  List<ProductModel> searchResults = [];
+  bool isSearching = false;
+  bool searchMatchedInSelectedStore = true;
+  bool searchExpandedToOtherStores = false;
+  String? searchNearestStoreName;
+  String? searchNearestStoreDistance;
   String? selectedCategoryId;
   String? selectedSubcategoryId;
   Timer? _debounceTimer;
@@ -42,10 +61,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     currentUser = await MockRepositories.fetchUser();
-    products = await MockRepositories.fetchProducts();
-    categories = await MockRepositories.fetchCategories();
+    categories = await catalogRepository.getCategories();
+    promotions = await promotionRepository.getPromotions(storeId: selectedStoreId);
+    products = await catalogRepository.getProducts();
     orders = await MockRepositories.fetchOrders();
-    addresses = await MockRepositories.fetchAddresses();
+    final apiAddresses = await addressRepository.getAddresses();
+    if (apiAddresses.isNotEmpty) {
+      addresses = apiAddresses;
+    } else {
+      addresses = await MockRepositories.fetchAddresses();
+    }
+    if (addresses.isNotEmpty && _selectedAddress == null) {
+      _selectedAddress = addresses.firstWhere((a) => a.isDefault, orElse: () => addresses.first);
+    }
+
+    // Identificar automáticamente la tienda más cercana a la dirección activa
+    final activeLat = activeDeliveryAddress.latitude;
+    final activeLng = activeDeliveryAddress.longitude;
+    await updateNearestStore(latitude: activeLat, longitude: activeLng);
 
     if (products.isNotEmpty) {
       cart = [
@@ -82,23 +115,58 @@ class AppState extends ChangeNotifier {
 
   void onSearchChanged(String query) {
     searchQuery = query;
+
+    if (query.trim().isEmpty) {
+      searchResults = [];
+      isSearching = false;
+      searchMatchedInSelectedStore = true;
+      searchExpandedToOtherStores = false;
+      searchNearestStoreName = null;
+      searchNearestStoreDistance = null;
+      notifyListeners();
+      return;
+    }
+
+    isSearching = true;
     notifyListeners();
 
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 350), () async {
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
       if (query.trim().isNotEmpty) {
-        final apiResults = await catalogRepository.searchProducts(query: query.trim());
-        if (apiResults.isNotEmpty) {
-          // Merge API results with existing products
-          for (var p in apiResults) {
-            if (!products.any((existing) => existing.id == p.id)) {
-              products.add(p);
-            }
-          }
-          notifyListeners();
-        }
+        final double? userLat = defaultAddress != null ? 6.244203 : (activeStore?.latitude ?? 6.208571);
+        final double? userLng = defaultAddress != null ? -75.592582 : (activeStore?.longitude ?? -75.568434);
+
+        final result = await catalogRepository.searchProducts(
+          query: query.trim(),
+          storeId: activeStore?.id,
+          userLat: userLat,
+          userLng: userLng,
+        );
+
+        searchResults = result.products;
+        searchMatchedInSelectedStore = result.matchedInSelectedStore;
+        searchExpandedToOtherStores = result.expandedToOtherStores;
+        searchNearestStoreName = result.nearestStoreName;
+        searchNearestStoreDistance = result.nearestStoreDistance;
+        isSearching = false;
+        notifyListeners();
+      } else {
+        searchResults = [];
+        isSearching = false;
+        notifyListeners();
       }
     });
+  }
+
+  void clearSearch() {
+    searchQuery = '';
+    searchResults = [];
+    isSearching = false;
+    searchMatchedInSelectedStore = true;
+    searchExpandedToOtherStores = false;
+    searchNearestStoreName = null;
+    searchNearestStoreDistance = null;
+    notifyListeners();
   }
 
   void toggleUserRole() {
@@ -168,23 +236,70 @@ class AppState extends ChangeNotifier {
   double get cartTotal => cartSubtotal + cartTax + cartShippingFee;
 
   // Address Operations
-  AddressModel? get defaultAddress {
-    return addresses.firstWhere(
-      (addr) => addr.isDefault,
-      orElse: () => addresses.isNotEmpty
-          ? addresses.first
-          : AddressModel(
-              id: 'def',
-              title: 'Casa',
-              fullAddress: 'Av. Principal #45, Edif. Altamira',
-              city: 'Caracas',
-              latitude: 10.4950,
-              longitude: -66.8500,
-            ),
+  AddressModel? _selectedAddress;
+
+  AddressModel get activeDeliveryAddress {
+    if (_selectedAddress != null) return _selectedAddress!;
+    if (addresses.isNotEmpty) {
+      final active = addresses.firstWhere(
+        (addr) => addr.isDefault,
+        orElse: () => addresses.first,
+      );
+      return active;
+    }
+    return AddressModel(
+      id: 'current-loc',
+      title: 'Ubicación actual',
+      fullAddress: 'Detectando ubicación GPS...',
+      city: 'Likora Central',
+      latitude: 19.4326,
+      longitude: -99.1332,
+      isDefault: true,
     );
   }
 
+  AddressModel? get defaultAddress => activeDeliveryAddress;
+
+    void selectAddress(AddressModel address) {
+    _selectedAddress = address;
+    setDefaultAddress(address.id);
+    updateNearestStore(latitude: address.latitude, longitude: address.longitude);
+  }
+
+  void selectCurrentLocation({
+    required double latitude,
+    required double longitude,
+    String? addressText,
+    String? city,
+  }) {
+    final locAddress = AddressModel(
+      id: 'curr-gps-${DateTime.now().millisecondsSinceEpoch}',
+      title: 'Ubicación actual',
+      fullAddress: addressText ?? 'Ubicación detectada por GPS',
+      city: city ?? 'Zona Actual',
+      latitude: latitude,
+      longitude: longitude,
+      isDefault: true,
+    );
+
+    final existingIdx = addresses.indexWhere((a) => a.title == 'Ubicación actual');
+    if (existingIdx != -1) {
+      addresses[existingIdx] = locAddress;
+    } else {
+      addresses.insert(0, locAddress);
+    }
+
+    _selectedAddress = locAddress;
+    updateNearestStore(latitude: latitude, longitude: longitude);
+    addresses = addresses.map((a) => a.copyWith(isDefault: a.id == locAddress.id)).toList();
+    notifyListeners();
+  }
+
   void addAddress(AddressModel newAddress) {
+    if (newAddress.isDefault) {
+      addresses = addresses.map((addr) => addr.copyWith(isDefault: false)).toList();
+      _selectedAddress = newAddress;
+    }
     addresses.add(newAddress);
     notifyListeners();
     addressRepository.createAddress(
@@ -198,16 +313,50 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  void updateAddress(AddressModel updatedAddress) {
+    final idx = addresses.indexWhere((addr) => addr.id == updatedAddress.id);
+    if (idx != -1) {
+      if (updatedAddress.isDefault) {
+        addresses = addresses.map((addr) => addr.copyWith(isDefault: false)).toList();
+        _selectedAddress = updatedAddress;
+      }
+      addresses[idx] = updatedAddress;
+      if (_selectedAddress?.id == updatedAddress.id) {
+        _selectedAddress = updatedAddress;
+      }
+      notifyListeners();
+      addressRepository.updateAddress(
+        id: updatedAddress.id,
+        alias: updatedAddress.title,
+        streetAddress: updatedAddress.fullAddress,
+        reference: updatedAddress.details,
+        city: updatedAddress.city,
+        latitude: updatedAddress.latitude,
+        longitude: updatedAddress.longitude,
+        isActive: updatedAddress.isDefault,
+      );
+    }
+  }
+
   void setDefaultAddress(String addressId) {
     addresses = addresses.map((addr) {
-      return addr.copyWith(isDefault: addr.id == addressId);
+      final isDef = addr.id == addressId;
+      if (isDef) _selectedAddress = addr;
+      return addr.copyWith(isDefault: isDef);
     }).toList();
     notifyListeners();
     addressRepository.setActiveAddress(addressId);
   }
 
   void removeAddress(String addressId) {
+    final wasDefault = _selectedAddress?.id == addressId || addresses.any((a) => a.id == addressId && a.isDefault);
     addresses.removeWhere((addr) => addr.id == addressId);
+    if (wasDefault && addresses.isNotEmpty) {
+      addresses[0] = addresses[0].copyWith(isDefault: true);
+      _selectedAddress = addresses[0];
+    } else if (addresses.isEmpty) {
+      _selectedAddress = null;
+    }
     notifyListeners();
     addressRepository.deleteAddress(addressId);
   }
@@ -289,13 +438,80 @@ class AppState extends ChangeNotifier {
     });
   }
 
+
+  Future<void> updateNearestStore({double? latitude, double? longitude}) async {
+    final double lat = latitude ?? (activeDeliveryAddress.latitude ?? 6.2442);
+    final double lng = longitude ?? (activeDeliveryAddress.longitude ?? -75.5925);
+
+    isCalculatingNearestStore = true;
+    notifyListeners();
+
+    try {
+      final result = await storeRepository.getNearestStore(latitude: lat, longitude: lng);
+      if (result != null) {
+        nearestStore = result.nearestStore;
+        nearbyStores = result.stores;
+        activeStore = result.nearestStore;
+        selectedStoreId = result.nearestStore.id;
+        
+        debugPrint('🎯 [AppState] Tienda asignada automáticamente: ${result.nearestStore.name} (${result.nearestStore.distanceFormatted})');
+        await refreshCatalog(storeId: selectedStoreId);
+      }
+    } catch (e) {
+      debugPrint('⚠️ [AppState] Error al identificar tienda más cercana: $e');
+    } finally {
+      isCalculatingNearestStore = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> selectStoreManually(StoreModel store) async {
+    activeStore = store;
+    selectedStoreId = store.id;
+    debugPrint('👉 [AppState] Tienda seleccionada manualmente: ${store.name}');
+    await refreshCatalog(storeId: store.id);
+    notifyListeners();
+  }
+
+  Future<void> selectStore(String? storeId) async {
+    selectedStoreId = storeId;
+    await refreshCatalog(storeId: storeId);
+  }
+
+  Future<void> refreshCatalog({String? storeId}) async {
+    final effectiveStoreId = storeId ?? selectedStoreId;
+    final newCategories = await catalogRepository.getCategories(storeId: effectiveStoreId);
+    final newProducts = await catalogRepository.getProducts(storeId: effectiveStoreId);
+    if (newCategories.isNotEmpty) categories = newCategories;
+    if (newProducts.isNotEmpty) products = newProducts;
+    final newPromos = await promotionRepository.getPromotions(storeId: effectiveStoreId);
+    if (newPromos.isNotEmpty) promotions = newPromos;
+    notifyListeners();
+  }
+
+
+  Future<void> fetchPromotions({String? storeId}) async {
+    final effectiveStoreId = storeId ?? selectedStoreId ?? activeStore?.id;
+    final list = await promotionRepository.getPromotions(storeId: effectiveStoreId);
+    if (list.isNotEmpty) {
+      promotions = list;
+      notifyListeners();
+    }
+  }
+
   // Products & Offers Filter
   List<ProductModel> get offerProducts {
-    return products.where((p) => p.isOffer).toList();
+    final list = products.where((p) => p.isOffer).toList();
+    if (list.isNotEmpty) return list;
+    final discounted = products.where((p) => p.discountPrice != null).toList();
+    if (discounted.isNotEmpty) return discounted;
+    return products.take(6).toList();
   }
 
   List<ProductModel> get featuredProducts {
-    return products.where((p) => p.isFeatured).toList();
+    final list = products.where((p) => p.isFeatured).toList();
+    if (list.isNotEmpty) return list;
+    return products.take(10).toList();
   }
 
   List<ProductModel> filterProductsByCategory(String categoryId, {String? subcategoryId}) {

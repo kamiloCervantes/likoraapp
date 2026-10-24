@@ -55,6 +55,16 @@ export class AuthController {
     return this.authService.resetPassword(email, otpCode, newPassword);
   }
 
+
+  @Post('admin/login')
+  @HttpCode(HttpStatus.OK)
+  async adminLogin(@Body() dto: LoginDto, @Req() req: Request) {
+    return this.authService.loginAdmin(dto, {
+      ip: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || 'LikoraAdminWeb',
+    });
+  }
+
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Req() req: Request) {

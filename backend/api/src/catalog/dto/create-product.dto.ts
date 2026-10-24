@@ -12,9 +12,17 @@ import {
 } from 'class-validator';
 
 export class CreateProductDto {
-  @IsUUID('4', { message: 'El ID de categoría debe ser un UUID válido' })
+  @IsUUID('all')
+  @IsOptional()
+  store_id?: string;
+
+  @IsUUID('all', { message: 'El ID de categoría debe ser un UUID válido' })
   @IsNotEmpty()
   category_id: string;
+
+  @IsUUID('all')
+  @IsOptional()
+  subcategory_id?: string;
 
   @IsString()
   @IsOptional()
@@ -52,6 +60,14 @@ export class CreateProductDto {
   @IsArray()
   @IsOptional()
   images?: Array<{ url: string; isCover?: boolean; alt?: string }>;
+
+  @IsBoolean()
+  @IsOptional()
+  is_featured?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  is_offer?: boolean;
 
   @IsBoolean()
   @IsOptional()

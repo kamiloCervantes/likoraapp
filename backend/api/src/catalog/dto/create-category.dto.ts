@@ -1,6 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsBoolean, MaxLength, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, IsBoolean, MaxLength, Min, IsUUID } from 'class-validator';
 
 export class CreateCategoryDto {
+  @IsUUID('all')
+  @IsOptional()
+  store_id?: string;
+
   @IsString()
   @IsNotEmpty({ message: 'El nombre de la categoría es obligatorio' })
   @MaxLength(100)
